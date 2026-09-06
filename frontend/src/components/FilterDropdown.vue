@@ -1,149 +1,120 @@
 <template>
-  <Popover
-    ref="filterPopover"
+  <FrappePopover
     v-if="fields.length"
-    placement="bottom-end"
+    ref="filterPopover"
+    side="bottom"
+    align="end"
+    :offset="8"
     @close="emitFilterChange"
-    :close-on-click-outside="true"
-    :close-on-click-content="false"
   >
-    <template #target>
-      <Button>
-        <span class="flex items-center">
-          <Icon name="filter" size="12" class="stroke-current text-ink-gray-7" />
-          <span class="ms-1">
-            <template v-if="activeFilterCount > 0">
-              {{ filterAppliedMessage }}
-            </template>
-            <template v-else>
-              {{ t`Filter` }}
-            </template>
-          </span>
-        </span>
-      </Button>
+    <template #trigger>
+      <FrappeButton icon-left="lucide-list-filter" size="md">
+        {{ activeFilterCount > 0 ? filterAppliedMessage : t`Filter` }}
+      </FrappeButton>
     </template>
-    <template #content>
-      <div>
-        <div class="p-2">
-          <template v-if="explicitFilters.length">
-            <div class="flex flex-col gap-2">
-              <div
-                v-for="(filter, i) in explicitFilters"
-                :key="filter.id"
-                class="flex flex-wrap items-center justify-between text-base gap-2"
-              >
-                <FrappeButton
-                  icon="lucide-x"
-                  size="xs"
-                  variant="ghost"
-                  :tooltip="t`Remove filter`"
-                  :aria-label="t`Remove filter ${i + 1}`"
-                  @click.stop="removeFilter(i)"
-                />
-                <Select
-                  :border="true"
-                  size="small"
-                  class="w-32"
-                  :df="{
-                    label: t`Field`,
-                    placeholder: t`field`,
-                    fieldname: 'fieldname',
-                    fieldtype: 'Select',
-                    options: fieldOptions,
-                  }"
-                  :value="filter.fieldname"
-                  @mousedown.stop
-                  @click.stop
-                  @change="(value) => updateNewFilters(i, 'fieldname', value)"
-                  @keydown.enter="applyFilters"
-                />
-
-                <Select
-                  :border="true"
-                  size="small"
-                  class="w-32"
-                  :df="{
-                    label: t`Condition`,
-                    placeholder: t`Condition`,
-                    fieldname: 'condition',
-                    fieldtype: 'Select',
-                    options: conditionsForDropdown,
-                  }"
-                  :value="filter.condition"
-                  :close-drop-down="false"
-                  @mousedown.stop
-                  @click.stop
-                  @change="(value) => updateNewFilters(i, 'condition', value)"
-                  @keydown.enter="applyFilters"
-                />
-
-                <Data
-                  :border="true"
-                  size="small"
-                  class="w-40"
-                  :df="{
-                    label: t`Value`,
-                    placeholder: t`Value`,
-                    fieldname: 'value',
-                    fieldtype: 'Data',
-                  }"
-                  :value="String(filter.value)"
-                  :close-drop-down="false"
-                  @mousedown.stop
-                  @click.stop
-                  @input="(event) => updateFilterValueFromInput(i, event)"
-                  @change="(value) => updateNewFilters(i, 'value', value)"
-                  @keydown.enter="applyFilters"
-                />
-              </div>
-            </div>
-          </template>
-          <template v-else>
-            <span class="text-base text-ink-gray-6">{{
-              t`No filters selected`
-            }}</span>
-          </template>
-        </div>
-        <div class="flex justify-between border-t border-outline-gray-1">
-          <FrappeButton icon-left="lucide-plus" variant="ghost" @click.stop="addNewFilter">
-            {{ t`Add a filter` }}
-          </FrappeButton>
-
-          <div class="flex">
+    <section
+      :aria-label="t`Filters`"
+      class="flex max-h-[var(--reka-popover-content-available-height)] w-[40rem] max-w-[calc(100vw-1.5rem)] flex-col"
+    >
+      <h2 class="shrink-0 px-4 pb-3 pt-4 text-base font-semibold text-ink-gray-9">
+        {{ t`Filters` }}
+      </h2>
+      <div class="min-h-0 overflow-y-auto px-4 pb-4">
+        <div v-if="explicitFilters.length" class="flex flex-col gap-4">
+          <div
+            v-for="(filter, i) in explicitFilters"
+            :key="filter.id"
+            role="group"
+            :aria-label="t`Filter ${i + 1}`"
+            class="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2rem] items-end gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.25fr)_2rem]"
+          >
+            <Select
+              :border="true"
+              :show-label="true"
+              class="min-w-0"
+              :df="{
+                label: t`Field`,
+                fieldname: 'fieldname',
+                fieldtype: 'Select',
+                options: fieldOptions,
+              }"
+              :value="filter.fieldname"
+              @change="(value) => updateNewFilters(i, 'fieldname', value)"
+            />
+            <Select
+              :border="true"
+              :show-label="true"
+              class="min-w-0"
+              :df="{
+                label: t`Condition`,
+                fieldname: 'condition',
+                fieldtype: 'Select',
+                options: conditionsForDropdown,
+              }"
+              :value="filter.condition"
+              @change="(value) => updateNewFilters(i, 'condition', value)"
+            />
+            <Data
+              :border="true"
+              :show-label="true"
+              class="col-span-2 min-w-0 sm:col-span-1"
+              :df="{
+                label: t`Value`,
+                placeholder: t`Value`,
+                fieldname: 'value',
+                fieldtype: 'Data',
+              }"
+              :value="String(filter.value)"
+              @input="(event) => updateFilterValueFromInput(i, event)"
+              @change="(value) => updateNewFilters(i, 'value', value)"
+              @keydown.enter.stop.prevent="applyFilters"
+            />
             <FrappeButton
-              v-if="filters.length"
-              icon-left="lucide-trash-2"
+              icon="lucide-x"
+              size="xs"
               variant="ghost"
-              @click="clearAllFilters"
-            >
-              {{ t`Clear` }}
-            </FrappeButton>
-
-            <FrappeButton
-              v-if="filters.length"
-              icon-left="lucide-search"
-              variant="subtle"
-              @click="applyFilters"
-            >
-              {{ t`Apply` }}
-            </FrappeButton>
+              class="col-start-3 row-start-1 mb-1 justify-self-center sm:col-start-4"
+              :tooltip="t`Remove filter`"
+              :aria-label="t`Remove filter ${i + 1}`"
+              @click="removeFilter(i)"
+            />
           </div>
         </div>
+        <p v-else class="py-2 text-base text-ink-gray-6">
+          {{ t`No filters selected` }}
+        </p>
       </div>
-    </template>
-  </Popover>
+      <footer
+        class="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-outline-gray-1 p-3"
+      >
+        <FrappeButton
+          icon-left="lucide-plus"
+          size="md"
+          variant="ghost"
+          @click="addNewFilter"
+        >
+          {{ t`Add a filter` }}
+        </FrappeButton>
+        <div v-if="explicitFilters.length" class="flex items-center gap-2">
+          <FrappeButton size="md" variant="ghost" @click="clearAllFilters">
+            {{ t`Clear` }}
+          </FrappeButton>
+          <FrappeButton size="md" variant="solid" @click="applyFilters">
+            {{ t`Apply` }}
+          </FrappeButton>
+        </div>
+      </footer>
+    </section>
+  </FrappePopover>
 </template>
 <script lang="ts">
 import { Field, FieldTypeEnum } from 'schemas/types';
-import { Button as FrappeButton } from 'frappe-ui';
+import { Button as FrappeButton, Popover as FrappePopover } from 'frappe-ui';
 import { fyo } from 'src/initFyo';
 import { getRandomString } from 'utils';
 import { defineComponent } from 'vue';
-import Button from './Button.vue';
 import Data from './Controls/Data.vue';
 import Select from './Controls/Select.vue';
-import Icon from './Icon.vue';
-import Popover from './Popover.vue';
 import { QueryFilter } from 'utils/db/types';
 import { t } from 'fyo';
 
@@ -200,9 +171,7 @@ function getFieldLabel(field: Field): string {
 export default defineComponent({
   name: 'FilterDropdown',
   components: {
-    Popover,
-    Button,
-    Icon,
+    FrappePopover,
     Select,
     Data,
     FrappeButton,
@@ -366,7 +335,9 @@ export default defineComponent({
     },
 
     closeFilterPopover(): void {
-      const popover = this.$refs.filterPopover as InstanceType<typeof Popover> | undefined;
+      const popover = this.$refs.filterPopover as
+        | InstanceType<typeof FrappePopover>
+        | undefined;
       popover?.close();
     },
 
@@ -428,6 +399,8 @@ export default defineComponent({
           ]),
         ).values(),
       );
+      // Keep draft indices aligned with the remaining visible rows.
+      this.newFilters = [...this.filters];
     },
   },
 });
