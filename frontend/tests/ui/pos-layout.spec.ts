@@ -149,6 +149,67 @@ test('cart values fit and expanded item fields open a usable keypad', async ({
   await expect(keypad).toBeHidden();
 });
 
+for (const modern of [true, false]) {
+  test(`${modern ? 'Modern' : 'Classic'} cart actions have balanced hover insets`, async ({
+    page,
+  }) => {
+    await page.evaluate((modern) => {
+      const fixture = (window as any).posFixture;
+      fixture.state.modern = modern;
+      fixture.fillCart();
+    }, modern);
+    const row = page
+      .locator('[data-slot="list-row"]')
+      .filter({
+        has: page.getByRole('button', { name: 'Expand item', exact: true }),
+      })
+      .first();
+    const expand = row.getByRole('button', { name: 'Expand item', exact: true });
+    const remove = row.getByRole('button', { name: 'Remove item', exact: true });
+
+    for (const width of [1440, 1024, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      const bounds = (await row.boundingBox())!;
+      const leading = (await expand.boundingBox())!;
+      const trailing = (await remove.boundingBox())!;
+      expect(bounds.height).toBe(48);
+      expect(leading.x - bounds.x).toBeCloseTo(8, 0);
+      expect(bounds.x + bounds.width - trailing.x - trailing.width).toBeCloseTo(
+        8,
+        0
+      );
+      expect(leading.y - bounds.y).toBeCloseTo(12, 0);
+      expect(trailing.y - bounds.y).toBeCloseTo(12, 0);
+    }
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const bounds = await row.boundingBox();
+    for (const [name, button] of [
+      ['remove', remove],
+      ['expand', expand],
+    ] as const) {
+      await button.hover();
+      await expect(
+        page.locator('[data-slot="bubble"]', {
+          hasText: name === 'remove' ? 'Remove item' : 'Expand item',
+        })
+      ).toBeVisible();
+      expect(await row.boundingBox()).toEqual(bounds);
+      await page.screenshot({
+        animations: 'disabled',
+        path: test.info().outputPath(`${name}-hover.png`),
+      });
+    }
+    await expand.click();
+    await expect(
+      page.getByRole('button', { name: 'Collapse item', exact: true })
+    ).toBeVisible();
+    await expect(
+      page.getByRole('spinbutton', { name: 'Quantity', exact: true })
+    ).toBeVisible();
+  });
+}
+
 test('view toggles survive switching layouts and checkout remains reachable', async ({
   page,
 }) => {
@@ -314,7 +375,10 @@ for (const dark of [false, true]) {
 }
 
 async function actionStyle(button: Locator) {
-  return button.evaluate((element) => {
+  return button.evaluate(async (element) => {
+    await Promise.all(
+      element.getAnimations().map((animation) => animation.finished)
+    );
     const style = getComputedStyle(element);
     return {
       width: style.width,

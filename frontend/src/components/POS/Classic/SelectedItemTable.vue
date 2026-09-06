@@ -4,7 +4,7 @@
       v-if="sinvDoc.items?.length"
       :columns="listColumns"
       divider="full"
-      class="mt-2 flex min-h-0 min-w-[36rem] flex-1 flex-col overflow-hidden rounded-4 border border-outline-gray-1 list-gap-2 [--list-row-padding-x:0px]"
+      class="mt-2 flex min-h-0 min-w-[36rem] flex-1 flex-col overflow-hidden rounded-4 border border-outline-gray-1 list-gap-0 [--list-row-padding-x:0px]"
     >
       <FrappeListHeader>
         <FrappeListHeaderCell
@@ -24,7 +24,7 @@
           <template #default="{ item: row, value }">
             <FrappeListRow
               :value="value"
-              class="group min-h-12 py-2 hover:bg-surface-gray-1"
+              class="group hover:bg-surface-gray-1"
             >
               <SelectedItemRow
                 :row="row as SalesInvoiceItem"
@@ -109,13 +109,13 @@ export default defineComponent({
   computed: {
     listColumns(): string[] {
       return [
-        '1.75rem',
+        '2.5rem',
         'minmax(6rem, 1.4fr)',
         'minmax(5rem, 0.9fr)',
         'minmax(3rem, 0.7fr)',
         'minmax(4rem, 0.9fr)',
         'minmax(4rem, 0.9fr)',
-        '1.75rem',
+        '2.5rem',
       ];
     },
     tableFields() {
