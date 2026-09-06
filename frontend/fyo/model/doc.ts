@@ -971,6 +971,8 @@ export class Doc extends Observable<DocValue | Doc[]> {
     await this._syncValues(data);
     this._notInserted = false;
     this.fyo.doc.observer.trigger(`submit:${this.schemaName}`, this.name);
+    // The server runs model hooks; notify only the UI listeners here.
+    await super.trigger('afterSubmit');
   }
 
   async cancel() {

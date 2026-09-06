@@ -455,6 +455,7 @@ export class Payment extends Transactional {
     const accounts = (await this.fyo.db.getAll(ModelNameEnum.Account, {
       fields: ['name', 'accountType'],
       filters: {
+        isGroup: false,
         accountType: [
           'in',
           [

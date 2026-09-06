@@ -240,10 +240,17 @@ export function getMakePaymentAction(fyo: Fyo): Action {
 
       await payment?.set('referenceType', schemaName);
       const currentRoute = router.currentRoute.value.fullPath;
-      payment.once('afterSync', async () => {
-        await payment.submit();
-        await doc.load();
-        await router.push(currentRoute);
+      payment.once('afterSubmit', async () => {
+        try {
+          await doc.load();
+          await router.push(currentRoute);
+        } catch {
+          const { showToast } = await import('src/utils/interactive');
+          showToast({
+            type: 'warning',
+            message: fyo.t`Payment ${payment.name!} was submitted, but the invoice view could not be refreshed. Reload the page.`,
+          });
+        }
       });
 
       const hideFields = ['party', 'for'];
