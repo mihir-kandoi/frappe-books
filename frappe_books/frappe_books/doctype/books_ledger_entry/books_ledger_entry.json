@@ -25,7 +25,8 @@
    "fieldname": "posting_date",
    "fieldtype": "Date",
    "label": "Date",
-   "read_only": 1
+   "read_only": 1,
+   "search_index": 1
   },
   {
    "fieldname": "account",
@@ -34,7 +35,8 @@
    "label": "Account",
    "options": "Books Account",
    "read_only": 1,
-   "reqd": 1
+   "reqd": 1,
+   "search_index": 1
   },
   {
    "fieldname": "debit",
@@ -60,7 +62,8 @@
    "fieldtype": "Dynamic Link",
    "label": "Ref. Name",
    "options": "voucher_type",
-   "read_only": 1
+   "read_only": 1,
+   "search_index": 1
   },
   {
    "default": "0",
@@ -86,7 +89,8 @@
    "fieldtype": "Link",
    "label": "Party",
    "options": "Books Party",
-   "read_only": 1
+   "read_only": 1,
+   "search_index": 1
   },
   {
    "fieldname": "details_section_break_5",

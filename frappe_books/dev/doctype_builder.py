@@ -36,6 +36,19 @@ FIELD_TYPE_MAP = {
 }
 NUMBER_SERIES_DIGITS = 5
 AUTOINCREMENT_DIGITS = 10
+# Ledger columns that postings, cancellations and reports filter on.
+SEARCH_INDEX_FIELDS = {
+	("AccountingLedgerEntry", "account"),
+	("AccountingLedgerEntry", "date"),
+	("AccountingLedgerEntry", "party"),
+	("AccountingLedgerEntry", "referenceName"),
+	("PaymentFor", "referenceName"),
+	("StockLedgerEntry", "batch"),
+	("StockLedgerEntry", "date"),
+	("StockLedgerEntry", "item"),
+	("StockLedgerEntry", "location"),
+	("StockLedgerEntry", "referenceName"),
+}
 
 
 def build_doctype(schema: Schema, schema_names: Iterable[str]) -> dict[str, Any]:
@@ -120,6 +133,8 @@ def _convert_field(schema: Schema, source_field: dict[str, Any], schema_names: s
 		"fieldtype": fieldtype,
 	}
 	_copy_boolean_properties(source_field, converted)
+	if (schema["name"], original_name) in SEARCH_INDEX_FIELDS:
+		converted["search_index"] = 1
 	if source_field.get("computed"):
 		converted["read_only"] = 1
 	if source_field.get("placeholder"):

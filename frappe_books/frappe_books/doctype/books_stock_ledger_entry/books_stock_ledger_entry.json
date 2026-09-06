@@ -30,7 +30,8 @@
    "fieldname": "date",
    "fieldtype": "Datetime",
    "label": "Date",
-   "read_only": 1
+   "read_only": 1,
+   "search_index": 1
   },
   {
    "fieldname": "details_section_break_3",
@@ -42,14 +43,16 @@
    "fieldtype": "Link",
    "label": "Location",
    "options": "Books Location",
-   "read_only": 1
+   "read_only": 1,
+   "search_index": 1
   },
   {
    "fieldname": "batch",
    "fieldtype": "Link",
    "label": "Batch",
    "options": "Books Batch",
-   "read_only": 1
+   "read_only": 1,
+   "search_index": 1
   },
   {
    "fieldname": "serial_number",
@@ -63,7 +66,8 @@
    "fieldtype": "Link",
    "label": "Item",
    "options": "Books Item",
-   "read_only": 1
+   "read_only": 1,
+   "search_index": 1
   },
   {
    "fieldname": "rate",
@@ -94,7 +98,8 @@
    "fieldtype": "Dynamic Link",
    "label": "Ref. Name",
    "options": "reference_type",
-   "read_only": 1
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "grid_page_length": 50,
