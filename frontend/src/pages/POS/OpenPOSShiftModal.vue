@@ -42,11 +42,11 @@
     </div>
 
     <template #actions>
-      <Button size="lg" class="min-w-24" @click="handleDismiss">{{
+      <Button size="md" class="min-w-24" @click="handleDismiss">{{
         t`Back`
       }}</Button>
       <Button
-        size="lg"
+        size="md"
         class="min-w-24"
         type="primary"
         @click="handleSubmit"

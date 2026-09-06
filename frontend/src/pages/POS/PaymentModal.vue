@@ -86,7 +86,7 @@
         class="flex w-full flex-wrap items-center justify-between gap-2"
       >
         <FrappeButton
-          size="lg"
+          size="md"
           theme="gray"
           variant="ghost"
           @click="cancelTransaction"
@@ -95,7 +95,7 @@
         </FrappeButton>
         <div class="flex flex-wrap items-center justify-end gap-2">
           <FrappeButton
-          size="lg"
+            size="md"
             theme="gray"
             variant="subtle"
             @click="submitTransaction"
@@ -103,7 +103,7 @@
             {{ t`Submit only` }}
           </FrappeButton>
           <FrappeButton
-          size="lg"
+            size="md"
             theme="gray"
             variant="subtle"
             :disabled="isPayDisabled"
@@ -112,7 +112,7 @@
             {{ sinvDoc.isReturn ? t`Refund & print` : t`Pay & print` }}
           </FrappeButton>
           <FrappeButton
-          size="lg"
+            size="md"
             theme="gray"
             variant="solid"
             :disabled="isPayDisabled"

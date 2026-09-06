@@ -36,13 +36,13 @@
 
     <template #actions>
       <Button
-        size="lg"
+        size="md"
         class="min-w-24"
         @click="$emit('toggleModal', 'ShiftClose', false)"
         >{{ t`Cancel` }}</Button
       >
       <Button
-        size="lg"
+        size="md"
         class="min-w-24"
         type="primary"
         @click="handleSubmit"

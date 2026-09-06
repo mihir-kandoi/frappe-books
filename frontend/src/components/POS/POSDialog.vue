@@ -30,7 +30,7 @@
       </div>
       <footer
         v-if="$slots.actions"
-        class="flex shrink-0 flex-wrap items-center justify-end gap-3 border-t border-outline-gray-1 px-6 py-4"
+        class="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-outline-gray-1 px-6 py-3"
       >
         <slot name="actions" />
       </footer>

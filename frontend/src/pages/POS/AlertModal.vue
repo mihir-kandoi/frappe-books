@@ -11,11 +11,11 @@
       }}
     </p>
     <template #actions>
-      <Button size="lg" @click="$emit('toggleModal', 'Alert')">{{
+      <Button size="md" @click="$emit('toggleModal', 'Alert')">{{
         t`Cancel`
       }}</Button>
       <Button
-        size="lg"
+        size="md"
         theme="red"
         @click="
           routeTo('/list/SalesInvoice');
@@ -23,7 +23,7 @@
         "
         >{{ t`Discard and Continue` }}</Button
       >
-      <Button size="lg" type="primary" @click="$emit('saveAndContinue')">{{
+      <Button size="md" type="primary" @click="$emit('saveAndContinue')">{{
         t`Save and Continue`
       }}</Button>
     </template>

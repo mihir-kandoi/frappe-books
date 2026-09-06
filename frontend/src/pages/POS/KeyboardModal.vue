@@ -16,14 +16,14 @@
 
     <template #actions>
       <Button
-        size="lg"
+        size="md"
         class="min-w-24"
         :disabled="saving"
         @click="closeKeyboardModal"
         >{{ t`Cancel` }}</Button
       >
       <Button
-        size="lg"
+        size="md"
         class="min-w-24"
         type="primary"
         :disabled="saving"

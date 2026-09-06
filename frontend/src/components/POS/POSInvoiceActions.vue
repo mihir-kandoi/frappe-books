@@ -21,7 +21,7 @@
       >
     </div>
     <Button
-      size="lg"
+      size="md"
       type="primary"
       :style="buttonStyle('pay')"
       :disabled="disablePay"

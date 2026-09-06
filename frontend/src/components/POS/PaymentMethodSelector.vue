@@ -10,7 +10,7 @@
 				:aria-pressed="method === selected"
 				theme="gray"
 				:variant="method === selected ? 'solid' : 'subtle'"
-				size="lg"
+				size="md"
 				@click="$emit('select', method)"
 			>
 				<span class="flex min-w-0 items-center justify-center gap-2">

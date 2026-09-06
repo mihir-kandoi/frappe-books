@@ -27,11 +27,11 @@
       />
     </div>
     <template #actions>
-      <Button size="lg" class="min-w-24" @click="cancelPriceList">{{
+      <Button size="md" class="min-w-24" @click="cancelPriceList">{{
         t`Cancel`
       }}</Button>
       <Button
-        size="lg"
+        size="md"
         class="min-w-24"
         type="primary"
         @click="setPriceList"

@@ -18,6 +18,8 @@ export async function preparePOSData() {
       { name: 'Cash', type: 'Cash' },
       { name: 'Credit Card', type: 'Transfer' },
       { name: 'Bank Transfer', type: 'Transfer', requiresClearanceDate: true },
+      { name: 'Store Cash', type: 'Cash' },
+      { name: 'Store UPI', type: 'Transfer' },
     ],
     Item: products.map((name, index) => ({
       name,

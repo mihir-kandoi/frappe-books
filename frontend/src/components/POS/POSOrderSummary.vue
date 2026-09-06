@@ -33,7 +33,7 @@
         <dt class="text-base font-medium text-ink-gray-9">
           {{ t`Grand Total` }}
         </dt>
-        <dd class="text-2xl font-semibold tabular-nums text-ink-gray-9">
+        <dd class="text-xl font-semibold tabular-nums text-ink-gray-9">
           {{ fyo.format(sinvDoc?.grandTotal ?? fyo.pesa(0), 'Currency') }}
         </dd>
       </div>
