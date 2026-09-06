@@ -7,7 +7,7 @@
       divider="full"
       class="custom-scroll custom-scroll-thumb1 min-h-0 flex-1 overflow-auto px-4 list-gap-0 [--list-row-padding-x:0px]"
     >
-      <FrappeListHeader class="sticky top-0 z-10 bg-surface-base">
+      <FrappeListHeader class="sticky top-0 z-10 min-w-max bg-surface-base">
         <ReportColumnHeader
           v-for="(column, index) in report.columns"
           :key="columnWidths.getKey(column)"
