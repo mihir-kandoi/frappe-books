@@ -188,6 +188,36 @@ class IntegrationTestPrFixes(IntegrationTestCase):
 		normalize_ledger_dates()
 		self.assertEqual(getdate(entry.db_get("posting_date")), getdate("2026-01-01"))
 
+	def test_date_repair_uses_journal_entry_posting_date(self):
+		if frappe.db.db_type != "sqlite":
+			self.skipTest("Legacy timestamp strings are specific to SQLite Date columns.")
+		journal = frappe.get_doc(
+			{
+				"doctype": "Books Journal Entry",
+				"entry_type": "Journal Entry",
+				"posting_date": "2026-03-03",
+				"accounts": [
+					{"account": self.cash.name, "debit": 10, "credit": 0},
+					{"account": self.income.name, "debit": 0, "credit": 10},
+				],
+			}
+		).insert()
+		journal.submit()
+		entry_name = frappe.get_all(
+			"Books Ledger Entry",
+			filters={"voucher_type": journal.doctype, "voucher_no": journal.name},
+			pluck="name",
+		)[0]
+		ledger = frappe.qb.DocType("Books Ledger Entry")
+		frappe.qb.update(ledger).set(ledger.posting_date, "2025-12-31T18:30:00.000Z").where(
+			ledger.name == entry_name
+		).run()
+
+		normalize_ledger_dates()
+
+		posting_date = frappe.db.get_value("Books Ledger Entry", entry_name, "posting_date")
+		self.assertEqual(getdate(posting_date), getdate("2026-03-03"))
+
 	def make_invoice(self, payment_type):
 		is_sales = payment_type == "Receive"
 		account = make_account(
