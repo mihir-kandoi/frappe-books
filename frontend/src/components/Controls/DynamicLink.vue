@@ -1,5 +1,6 @@
 <script>
 import { fyo } from 'src/initFyo';
+import { setLinkOnParent } from 'src/utils/doc';
 import Link from './Link.vue';
 export default {
   name: 'DynamicLink',
@@ -89,13 +90,11 @@ export default {
       const parentDoc = this.doc;
       const fieldname = this.df.fieldname;
 
-      doc.once('afterSync', () => {
+      doc.once('afterSync', async () => {
         this.$router.back();
         this.results = [];
         this.triggerChange(doc.name);
-        if (parentDoc && fieldname) {
-          parentDoc.set(fieldname, doc.name).catch(() => {});
-        }
+        await setLinkOnParent(parentDoc, fieldname, doc.name);
       });
     },
   },

@@ -2,6 +2,27 @@ import { Doc } from 'fyo/model/doc';
 import { Field, TargetField } from 'schemas/types';
 import { GetAllOptions } from 'utils/db/types';
 
+/**
+ * Point a parent document's link field at a record created from a quick edit.
+ * The parent may reject the value, so the failure is shown instead of dropped.
+ */
+export async function setLinkOnParent(
+  parentDoc: Doc | undefined,
+  fieldname: string | undefined,
+  name: string
+) {
+  if (!parentDoc || !fieldname) {
+    return;
+  }
+
+  try {
+    await parentDoc.set(fieldname, name);
+  } catch (error) {
+    const { handleError } = await import('src/errorHandling');
+    await handleError(false, error as Error);
+  }
+}
+
 export function evaluateReadOnly(field: Field, doc?: Doc) {
   if (doc?.inserted && field.fieldname === 'numberSeries') {
     return true;

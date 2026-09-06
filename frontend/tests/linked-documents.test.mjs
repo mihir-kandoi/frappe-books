@@ -23,6 +23,9 @@ for (const control of ['Link', 'DynamicLink', 'MultiLabelLink']) {
       {
         fyo,
         openUi: async () => ({ openQuickEdit: () => {} }),
+        setLinkOnParent: async (parentDoc, fieldname, name) => {
+          if (parentDoc && fieldname) await parentDoc.set(fieldname, name);
+        },
       }
     );
     const controlInstance = {
