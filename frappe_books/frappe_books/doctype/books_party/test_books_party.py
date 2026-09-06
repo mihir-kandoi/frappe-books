@@ -37,6 +37,19 @@ class IntegrationTestBooksParty(IntegrationTestCase):
 		).insert()
 		self.assertEqual(party.gstin, "27AAAAA0000A1Z5")
 
+	def test_registered_party_stores_normalized_gstin(self):
+		party = frappe.get_doc(
+			{
+				"doctype": "Books Party",
+				"name": unique_name("GST Party"),
+				"role": "Customer",
+				"gst_type": "Registered Regular",
+				"gstin": " 27aaaaa0000a1z5 ",
+			}
+		).insert()
+		self.assertEqual(party.gstin, "27AAAAA0000A1Z5")
+		self.assertEqual(party.db_get("gstin"), "27AAAAA0000A1Z5")
+
 	def test_unregistered_party_clears_gstin(self):
 		party = frappe.get_doc(
 			{
