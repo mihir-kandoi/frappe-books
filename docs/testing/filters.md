@@ -3,8 +3,11 @@
 The list filter supports eight conditions: Is, Is Not, Contains, Does Not Contain,
 Greater Than, Less Than, Is Empty, and Is Not Empty. Rules use AND, including
 multiple rules on the same field. Clear removes user rules and preserves implicit
-and route restrictions. Apply, Enter, Escape, and outside clicks apply complete
-rules. Invalid values keep the editor open with an error.
+and route restrictions. Apply, Enter in text inputs, Escape, and outside clicks
+apply complete rules. Invalid query values keep the editor open with an error.
+Date and Datetime fields use the native Frappe UI calendar and date-time pickers.
+Enter commits a picker value; Escape closes the nested picker first. Both leave
+the filter editor open. Empty conditions do not show a value picker.
 
 | Area | Tests |
 | --- | --- |
@@ -18,7 +21,9 @@ rules. Invalid values keep the editor open with an error.
 Contains adds `%` around the entered text. `%` and `_` retain SQL wildcard
 semantics. Is compares the entered value without adding wildcards. Empty checks
 use Frappe's `is set` / `is not set` semantics; text NULL and empty strings count
-as empty. Date values require `YYYY-MM-DD`; Datetime values also require a time.
+as empty. Pickers serialize Date values as `YYYY-MM-DD` and Datetime values as
+`YYYY-MM-DD HH:mm:ss`. Selecting only a date in an empty Datetime picker uses
+midnight. Picker values can also be typed or cleared.
 Check fields offer Is / Is Not with Yes / No. Numeric and date fields omit text
 conditions. Document numbers, net and grand totals, audit dates and users, and
 Submitted/Cancelled flags are available even when their form fields are read-only.

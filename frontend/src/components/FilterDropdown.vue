@@ -80,13 +80,33 @@
               "
               @change="(value) => updateFilter(filter, 'value', value)"
             />
+            <component
+              :is="
+                fieldFor(filter)?.fieldtype === 'Date'
+                  ? 'FrappeDatePicker'
+                  : 'FrappeDateTimePicker'
+              "
+              v-else-if="
+                ['Date', 'Datetime'].includes(fieldFor(filter)?.fieldtype ?? '')
+              "
+              :key="filter.fieldname"
+              class="col-span-2 min-w-0 sm:col-span-1"
+              variant="outline"
+              size="md"
+              side="bottom"
+              align="start"
+              :label="t`Value`"
+              :clearable="true"
+              :model-value="String(filter.value ?? '')"
+              @change="(value: string) => updateFilter(filter, 'value', value)"
+            />
             <FrappeTextInput
               v-else
               class="col-span-2 min-w-0 sm:col-span-1"
               variant="outline"
               size="md"
               :label="t`Value`"
-              :placeholder="valuePlaceholder(filter)"
+              :placeholder="t`Value`"
               :model-value="String(filter.value ?? '')"
               @update:model-value="
                 (value) => updateFilter(filter, 'value', value)
@@ -138,6 +158,8 @@
 import { Field } from 'schemas/types';
 import {
   Button as FrappeButton,
+  DatePicker as FrappeDatePicker,
+  DateTimePicker as FrappeDateTimePicker,
   Popover as FrappePopover,
   TextInput as FrappeTextInput,
 } from 'frappe-ui';
@@ -160,7 +182,14 @@ import {
 
 export default defineComponent({
   name: 'FilterDropdown',
-  components: { FrappePopover, FrappeTextInput, Select, FrappeButton },
+  components: {
+    FrappePopover,
+    FrappeTextInput,
+    FrappeDatePicker,
+    FrappeDateTimePicker,
+    Select,
+    FrappeButton,
+  },
   props: { schemaName: { type: String, required: true } },
   emits: ['change'],
   data() {
@@ -216,15 +245,13 @@ export default defineComponent({
     conditionsFor(filter: FilterRow) {
       return [...conditionsForField(this.fieldFor(filter))];
     },
-    valuePlaceholder(filter: FilterRow) {
-      const type = this.fieldFor(filter)?.fieldtype;
-      if (type === 'Date') return 'YYYY-MM-DD';
-      if (type === 'Datetime') return 'YYYY-MM-DDTHH:mm:ss';
-      return t`Value`;
-    },
-    onOpenChange(open: boolean) {
+    async onOpenChange(open: boolean) {
       if (open) this.isOpen = true;
-      else this.applyFilters();
+      else {
+        // Outside pointerdown runs before blur commits the picker's input.
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        this.applyFilters();
+      }
     },
     addNewFilter() {
       const field = this.fields[0];

@@ -43,6 +43,7 @@ test.afterAll(async () => {
 });
 
 test.beforeEach(async ({ page }) => {
+  await page.clock.install({ time: new Date('2024-02-15T12:00:00') });
   await page.goto(url);
   await page.getByRole('button', { name: 'Filter', exact: true }).click();
   await page.evaluate(() => document.fonts.ready);
@@ -165,7 +166,7 @@ test('remaining filters can be edited and removed after an incomplete row is dis
     .getByRole('button', { name: 'Remove filter 1', exact: true })
     .click();
   await expect(panel.getByText('No filters selected')).toBeVisible();
-  await page.keyboard.press('Escape');
+  await dismissFilters(page);
   expect(await appliedFilters(page)).toEqual({});
 });
 
@@ -241,7 +242,7 @@ test('Is Empty on User Remark hides Value and sends the unary condition', async 
   expect(await appliedFilters(page)).toEqual({ userRemark: ['is null', null] });
 });
 
-test('changing field types resets values and restricts operators; invalid dates stay open', async ({
+test('date filters use the calendar and reset incompatible field values', async ({
   page,
 }) => {
   await page.evaluate(() => {
@@ -252,22 +253,30 @@ test('changing field types resets values and restricts operators; invalid dates 
   await page.getByRole('textbox', { name: 'Value', exact: true }).fill('Paid');
   await choose(page, 'Field', 'Date');
   const input = page.getByRole('textbox', { name: 'Value', exact: true });
+  const panel = page.getByRole('region', { name: 'Filters', exact: true });
   await expect(input).toHaveValue('');
   await page.getByRole('combobox', { name: 'Condition', exact: true }).click();
   await expect(
     page.getByRole('option', { name: 'Contains', exact: true })
   ).toHaveCount(0);
   await page.getByRole('option', { name: 'Is', exact: true }).click();
-  await input.fill('2023-02-29');
-  await input.press('Enter');
-  await expect(page.getByRole('alert')).toContainText('Enter a valid date');
+  await input.click();
+  await page.locator('[role="gridcell"][data-value="2024-02-29"]').click();
+  await expect(page.getByRole('grid', { name: 'Calendar dates' })).toBeHidden();
+  await expect(page.getByPlaceholder('Select time')).toHaveCount(0);
+  await expect(input).toHaveValue('2024-02-29');
+  await expect(panel).toBeVisible();
   expect(await appliedFilters(page)).toEqual({});
-  await input.fill('2024-02-29');
+  await input.fill('not a date');
   await input.press('Enter');
-  await expect(
-    page.getByRole('region', { name: 'Filters', exact: true })
-  ).toBeHidden();
+  await expect(input).toHaveValue('2024-02-29');
+  await expect(panel).toBeVisible();
+  await page.getByRole('button', { name: 'Apply', exact: true }).click();
   expect(await appliedFilters(page)).toEqual({ date: ['=', '2024-02-29'] });
+  await page
+    .getByRole('button', { name: '1 filter applied', exact: true })
+    .click();
+  await expect(input).toHaveValue('2024-02-29');
 });
 
 test('same-field conditions survive apply, reopen, edit, remove, refresh and clear', async ({
@@ -308,7 +317,7 @@ test('same-field conditions survive apply, reopen, edit, remove, refresh and cle
   await panel
     .getByRole('textbox', { name: 'Value', exact: true })
     .fill('Unpaid');
-  await page.keyboard.press('Escape');
+  await dismissFilters(page);
   expect(await appliedFilters(page)).toEqual({ status: ['!=', 'Unpaid'] });
   await page
     .getByRole('button', { name: '1 filter applied', exact: true })
@@ -325,7 +334,7 @@ test('same-field conditions survive apply, reopen, edit, remove, refresh and cle
 test('filtering on page two returns to the first page of matching records', async ({
   page,
 }) => {
-  await page.keyboard.press('Escape');
+  await dismissFilters(page);
   await page.getByRole('button', { name: 'Next page', exact: true }).click();
   await expect(
     page.getByRole('spinbutton', { name: 'Page number', exact: true })
@@ -340,6 +349,13 @@ test('filtering on page two returns to the first page of matching records', asyn
   ).toHaveValue('1');
   await expect(page.getByText('INV-1', { exact: true })).toBeVisible();
 });
+
+async function dismissFilters(page: Page) {
+  await page.keyboard.press('Escape');
+  await expect(
+    page.getByRole('region', { name: 'Filters', exact: true })
+  ).toBeHidden();
+}
 
 async function choose(page: Page, control: string, option: string, index = 0) {
   await page
@@ -384,31 +400,165 @@ for (const [field, value, expected] of [
   });
 }
 
-test('date and time validation accepts correction and SQL round trips', async ({
+test('datetime filters select both calendar date and time and preserve SQL round trips', async ({
   page,
 }) => {
   await page.getByRole('button', { name: 'Add a filter', exact: true }).click();
   await choose(page, 'Field', 'Date');
   const input = page.getByRole('textbox', { name: 'Value', exact: true });
-  await input.fill('2024-02-29');
-  await input.press('Enter');
-  await expect(page.getByRole('alert')).toContainText('date and time');
-  await input.fill('2024-02-29T13:45:00');
-  await input.press('Enter');
-  await expect(
-    page.getByRole('region', { name: 'Filters', exact: true })
-  ).toBeHidden();
-  expect(await appliedFilters(page)).toEqual({
-    date: ['=', '2024-02-29 13:45:00'],
-  });
+  const panel = page.getByRole('region', { name: 'Filters', exact: true });
+  await input.click();
+  await page.locator('[role="gridcell"][data-value="2024-02-29"]').click();
+  const time = page.getByPlaceholder('Select time');
+  await expect(time).toBeVisible();
+  await time.click();
+  await page.getByRole('option', { name: '13:30', exact: true }).click();
+  await expect(input).toHaveValue('2024-02-29 13:30:00');
+  await time.fill('13:45:00');
+  await time.press('Enter');
+  await expect(input).toHaveValue('2024-02-29 13:45:00');
+  await expect(panel).toBeVisible();
+  expect(await appliedFilters(page)).toEqual({});
+  await page.getByRole('button', { name: 'Apply', exact: true }).click();
+  await expect(panel).toBeHidden();
+  const expected = { date: ['=', '2024-02-29 13:45:00'] };
+  expect(await appliedFilters(page)).toEqual(expected);
   await page.evaluate(() => {
     const f = (window as any).filterFixture;
     f.filter.value.setFilter(f.state.applied);
   });
+  expect(await appliedFilters(page)).toEqual(expected);
+  await page
+    .getByRole('button', { name: '1 filter applied', exact: true })
+    .click();
+  await expect(input).toHaveValue('2024-02-29 13:45:00');
+  await input.click();
+  await expect(time).toHaveValue('13:45');
+  await expect(
+    page.locator('[role="gridcell"][data-value="2024-02-29"]')
+  ).toHaveAttribute('aria-selected', 'true');
+  await time.click();
+  await time.fill('14:25:30');
+  await page
+    .getByRole('heading', { name: 'Sales Invoice', exact: true })
+    .click();
+  await expect(panel).toBeHidden();
   expect(await appliedFilters(page)).toEqual({
-    date: ['=', '2024-02-29 13:45:00'],
+    date: ['=', '2024-02-29 14:25:30'],
   });
 });
+
+for (const schema of ['JournalEntry', 'SalesInvoice']) {
+  test(`${schema} date picker supports keyboard selection, Escape, clearing and empty conditions`, async ({
+    page,
+  }) => {
+    if (schema === 'JournalEntry') {
+      await page.evaluate(() => {
+        (window as any).filterFixture.state.schemaName = 'JournalEntry';
+      });
+      await page.getByRole('button', { name: 'Filter', exact: true }).click();
+    }
+    await page
+      .getByRole('button', { name: 'Add a filter', exact: true })
+      .click();
+    await choose(page, 'Field', 'Date');
+    const input = page.getByRole('textbox', { name: 'Value', exact: true });
+    const panel = page.getByRole('region', { name: 'Filters', exact: true });
+    await input.focus();
+    await input.press('ArrowDown');
+    await expect(
+      page.locator('[role="gridcell"][data-value="2024-02-15"]')
+    ).toBeFocused();
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('Enter');
+    await expect(input).toHaveValue(
+      schema === 'JournalEntry' ? '2024-02-16' : '2024-02-16 00:00:00'
+    );
+    // Escape dismisses the nested calendar without applying its parent filter.
+    await input.click();
+    await page.keyboard.press('Escape');
+    await expect(
+      page.getByRole('grid', { name: 'Calendar dates' })
+    ).toBeHidden();
+    await expect(panel).toBeVisible();
+    expect(await appliedFilters(page)).toEqual({});
+    await input.fill('');
+    await input.press('Enter');
+    await expect(input).toHaveValue('');
+    await page.getByRole('button', { name: 'Apply', exact: true }).click();
+    expect(await appliedFilters(page)).toEqual({});
+    await page.getByRole('button', { name: 'Filter', exact: true }).click();
+    await expect(input).toHaveValue('');
+    await choose(page, 'Condition', 'Is Empty');
+    await expect(input).toHaveCount(0);
+    await page.getByRole('button', { name: 'Apply', exact: true }).click();
+    expect(await appliedFilters(page)).toEqual({ date: ['is null', null] });
+  });
+}
+
+for (const [schema, first, second] of [
+  ['JournalEntry', '2024-02-29', '2024-03-01'],
+  ['SalesInvoice', '2024-02-29T13:45:12', '2024-03-01T00:00:00'],
+]) {
+  test(`${schema} typed picker values commit before Apply and outside clicks`, async ({
+    page,
+  }) => {
+    if (schema === 'JournalEntry') {
+      await page.evaluate(() => {
+        (window as any).filterFixture.state.schemaName = 'JournalEntry';
+      });
+      await page.getByRole('button', { name: 'Filter', exact: true }).click();
+    }
+    await page
+      .getByRole('button', { name: 'Add a filter', exact: true })
+      .click();
+    await choose(page, 'Field', 'Date');
+    const input = page.getByRole('textbox', { name: 'Value', exact: true });
+    await input.click();
+    await input.fill(first);
+    await page.getByRole('button', { name: 'Apply', exact: true }).click();
+    expect(await appliedFilters(page)).toEqual({
+      date: ['=', first.replace('T', ' ')],
+    });
+    await page
+      .getByRole('button', { name: '1 filter applied', exact: true })
+      .click();
+    await input.click();
+    await input.fill(second);
+    await page
+      .getByRole('heading', { name: 'Sales Invoice', exact: true })
+      .click();
+    await expect(
+      page.getByRole('region', { name: 'Filters', exact: true })
+    ).toBeHidden();
+    expect(await appliedFilters(page)).toEqual({
+      date: ['=', second.replace('T', ' ')],
+    });
+  });
+}
+
+for (const width of [1440, 390]) {
+  test(`datetime calendar fits within a ${width}px viewport`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 560 });
+    await page
+      .getByRole('button', { name: 'Add a filter', exact: true })
+      .click();
+    await choose(page, 'Field', 'Date');
+    await page.getByRole('textbox', { name: 'Value', exact: true }).click();
+    const calendar = page.getByRole('grid', { name: 'Calendar dates' });
+    await expect(calendar).toBeVisible();
+    const bounds = (await calendar.boundingBox())!;
+    expect(bounds.x).toBeGreaterThanOrEqual(0);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(width);
+    await expect(page.getByPlaceholder('Select time')).toBeInViewport();
+    await page.screenshot({
+      path: test.info().outputPath('datetime-picker.png'),
+      animations: 'disabled',
+    });
+  });
+}
 
 test('hidden filters survive visible removal and Clear; drafts do not change the badge', async ({
   page,
@@ -432,7 +582,7 @@ test('hidden filters survive visible removal and Clear; drafts do not change the
   await page
     .getByRole('button', { name: 'Remove filter 1', exact: true })
     .click();
-  await page.keyboard.press('Escape');
+  await dismissFilters(page);
   expect(await appliedFilters(page)).toEqual({ status: ['!=', 'Cancelled'] });
   await page.getByRole('button', { name: 'Filter', exact: true }).click();
   await page.getByRole('button', { name: 'Add a filter', exact: true }).click();
@@ -451,6 +601,9 @@ test('outside click applies changes and zero matches can be cleared', async ({
   await page
     .getByRole('heading', { name: 'Sales Invoice', exact: true })
     .click();
+  await expect(
+    page.getByRole('region', { name: 'Filters', exact: true })
+  ).toBeHidden();
   expect(await appliedFilters(page)).toEqual({ status: ['like', '%missing%'] });
   await expect(
     page.getByText('No entries found', { exact: true })
@@ -540,7 +693,7 @@ async function useFilterDatabase(page: Page, schemaName = 'JournalEntry') {
     });
     await route.fulfill({ json: JSON.parse(stdout) });
   });
-  await page.keyboard.press('Escape');
+  await dismissFilters(page);
   await page.evaluate(async (schemaName) => {
     const fixture = (window as any).filterFixture;
     fixture.state.useDatabase = true;
@@ -556,6 +709,7 @@ async function useFilterDatabase(page: Page, schemaName = 'JournalEntry') {
 
 const storedFieldCases = [
   ['JournalEntry', 'Entry No', 'Contains', 'Filter 3 ', ['3']],
+  ['JournalEntry', 'Date', 'Greater Than', '2024-01-03', ['3', '4']],
   ['JournalEntry', 'Number Series', 'Is', 'JV-', ['0', '2', '4']],
   ['JournalEntry', 'Created By', 'Is', 'Administrator', ['0', '2', '4']],
   ['JournalEntry', 'Modified By', 'Is', 'Guest', ['1', '3']],
@@ -593,7 +747,20 @@ for (const [schema, field, condition, value, matches] of storedFieldCases) {
     await choose(page, 'Condition', condition);
     if (field === 'Submitted' || field === 'Cancelled')
       await choose(page, 'Value', value);
-    else
+    else if (field === 'Date' || field === 'Created' || field === 'Modified') {
+      const date = value.slice(0, 10);
+      // Start the calendar in the fixture month, then select a real day cell.
+      const input = page.getByRole('textbox', { name: 'Value', exact: true });
+      await input.fill(value);
+      await input.press('Enter');
+      await input.click();
+      await page.locator(`[role="gridcell"][data-value="${date}"]`).click();
+      if (field !== 'Date') {
+        const time = page.getByPlaceholder('Select time');
+        await time.fill('12:00:00');
+        await time.press('Enter');
+      }
+    } else
       await page
         .getByRole('textbox', { name: 'Value', exact: true })
         .fill(value);
