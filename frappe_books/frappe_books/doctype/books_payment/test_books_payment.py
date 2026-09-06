@@ -64,6 +64,45 @@ class IntegrationTestBooksPayment(IntegrationTestCase):
 		payment.cancel()
 		self.assertEqual(Decimal(str(invoice.db_get("outstanding_amount"))), Decimal("200"))
 
+	def test_payment_requires_submitted_invoice_of_same_party(self):
+		receivable = make_account("Receivable", account_type="Receivable")
+		cash = make_account("Cash", account_type="Cash")
+		income = make_account("Income", root_type="Income", account_type="Income Account")
+		expense = make_account("Expense", root_type="Expense", account_type="Expense Account")
+		party = make_party(receivable.name)
+		other_party = make_party(receivable.name)
+		item = make_item(income.name, expense.name)
+		invoice = make_invoice("Books Sales Invoice", party.name, receivable.name, item.name, income.name)
+
+		with self.assertRaises(frappe.ValidationError):
+			self._payment_for(invoice, party, receivable, cash).insert()
+
+		invoice.submit()
+		with self.assertRaises(frappe.ValidationError):
+			self._payment_for(invoice, other_party, receivable, cash).insert()
+		self._payment_for(invoice, party, receivable, cash).insert()
+
+	def _payment_for(self, invoice, party, account, cash):
+		return frappe.get_doc(
+			{
+				"doctype": "Books Payment",
+				"party": party.name,
+				"date": now_datetime(),
+				"payment_type": "Receive",
+				"account": account.name,
+				"payment_account": cash.name,
+				"payment_method": "Cash",
+				"amount": invoice.base_grand_total,
+				"payment_references": [
+					{
+						"reference_type": invoice.doctype,
+						"reference_name": invoice.name,
+						"amount": invoice.base_grand_total,
+					}
+				],
+			}
+		)
+
 	def test_pay_credits_cash_and_debits_payable(self):
 		payable = make_account("Payable", root_type="Liability", account_type="Payable")
 		cash = make_account("Cash", account_type="Cash")
