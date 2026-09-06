@@ -19,7 +19,7 @@
         v-for="group in fieldGroups"
         :key="group[0].fieldname"
         :class="
-          group.length > 1
+          group[0].fieldtype === 'Check'
             ? 'col-span-2 grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2'
             : 'contents'
         "
@@ -28,12 +28,9 @@
           v-for="field of group"
           :key="field.fieldname"
           :class="[
-            'min-w-0',
+            'min-w-0 self-start w-full',
             field.fieldtype === 'Table' ? 'col-span-2 text-base' : '',
             field.fieldtype === 'AttachImage' ? 'row-span-2' : '',
-            field.fieldtype === 'Check'
-              ? ['min-h-8 w-full', group.length > 1 ? 'self-start' : 'self-end']
-              : 'self-start w-full',
             field.fieldname === 'termsAndConditions' ? 'col-span-2' : '',
             field.invisible ? 'invisible' : '',
           ]"
@@ -57,6 +54,7 @@
             v-else
             :ref="field.fieldname === 'name' ? 'nameField' : 'fields'"
             class="w-full"
+            :layout="field.fieldtype === 'Check' ? 'inline' : undefined"
             :size="field.fieldtype === 'AttachImage' ? 'form' : undefined"
             :show-label="true"
             :border="true"

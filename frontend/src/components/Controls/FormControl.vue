@@ -63,6 +63,7 @@ export default {
     const component = components[fieldtype] ?? Data;
 
     return h(component, {
+      ...(fieldtype === 'Check' ? { layout: 'field' } : {}),
       ...this.$attrs,
       ref: 'control',
     });

@@ -31,12 +31,7 @@
         :key="field.fieldname + '-filter'"
         :border="true"
         size="small"
-        class="min-w-0"
-        :class="[
-          field.fieldtype === 'Check'
-            ? 'self-end min-h-8'
-            : 'self-start w-full',
-        ]"
+        class="min-w-0 self-start w-full"
         :show-label="true"
         :df="field"
         :value="report.get(field.fieldname)"

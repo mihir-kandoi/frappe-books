@@ -8,11 +8,10 @@
     <div class="flex flex-wrap items-end gap-4 p-4">
       <Check
         v-if="configFields.useListFilters && Object.keys(listFilters).length"
-        class="min-h-8 w-56"
+        class="w-56"
+        layout="field"
         :df="configFields.useListFilters"
-        :space-between="true"
         :show-label="true"
-        :label-right="false"
         :value="useListFilters"
         :border="true"
         @change="(value: boolean) => (useListFilters = value)"
@@ -61,11 +60,7 @@
             v-for="ef of fields"
             :key="ef.fieldname"
             class="min-w-0"
-            :label-class="
-              ef.fieldtype === 'Table'
-                ? 'text-sm text-ink-gray-6 font-semibold'
-                : 'text-sm text-ink-gray-6'
-            "
+            :class="ef.fieldtype === 'Table' ? '[&_label]:font-semibold' : ''"
             :df="getField(ef)"
             :show-label="true"
             :value="ef.export"
@@ -94,7 +89,6 @@
             v-for="ef of efs.fields"
             :key="ef.fieldname"
             class="min-w-0"
-            label-class="text-ink-gray-6"
             :df="getField(ef)"
             :show-label="true"
             :value="ef.export"

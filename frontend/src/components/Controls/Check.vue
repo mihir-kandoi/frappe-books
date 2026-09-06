@@ -1,28 +1,35 @@
 <template>
   <div
-    class="flex min-h-8 min-w-0 items-center"
-    :class="spaceBetween ? 'justify-between gap-3' : ''"
+    class="books-check min-w-0 text-base"
+    :class="{
+      'books-check-field': showLabel && layout === 'field',
+      'books-check-required': showMandatory,
+    }"
+    :style="containerStyles"
   >
-    <div v-if="showLabel && !labelRight" class="me-3" :class="labelClasses">
-      {{ df.label }}
+    <div
+      class="books-check-control flex min-w-0 items-center"
+      :class="frappeSize === 'sm' ? 'min-h-7' : 'min-h-8'"
+    >
+      <FrappeCheckbox
+        ref="input"
+        class="min-w-0 max-w-full"
+        :model-value="getChecked(value)"
+        :label="showLabel ? df.label : undefined"
+        :aria-label="showLabel ? undefined : df.label"
+        :required="isRequired"
+        :disabled="isReadOnly"
+        :size="frappeSize"
+        @update:model-value="onChange"
+        @focus="onFocus"
+      />
     </div>
-    <FrappeCheckbox
-      ref="input"
-      :model-value="getChecked(value)"
-      :label="showLabel && labelRight ? df.label : undefined"
-      :required="isRequired"
-      :disabled="isReadOnly"
-      size="sm"
-      :class="['min-w-0', labelClass, showMandatory ? 'text-ink-red-7' : '']"
-      @update:model-value="onChange"
-      @focus="onFocus"
-    />
   </div>
 </template>
 
 <script lang="ts">
 import { Checkbox as FrappeCheckbox } from 'frappe-ui';
-import { defineComponent } from 'vue';
+import { defineComponent, PropType } from 'vue';
 import Base from './Base.vue';
 
 export default defineComponent({
@@ -30,22 +37,12 @@ export default defineComponent({
   components: { FrappeCheckbox },
   extends: Base,
   props: {
-    spaceBetween: {
-      default: false,
-      type: Boolean,
+    layout: {
+      default: 'inline',
+      type: String as PropType<'inline' | 'field'>,
     },
-    labelRight: {
-      default: true,
-      type: Boolean,
-    },
-    labelClass: String,
   },
   emits: ['focus'],
-  computed: {
-    labelClasses(): string {
-      return this.labelClass || 'text-ink-gray-6 text-base';
-    },
-  },
   methods: {
     getChecked(value: unknown) {
       return Boolean(value);
@@ -58,3 +55,32 @@ export default defineComponent({
   },
 });
 </script>
+
+<style scoped>
+/* Reserve the same label line and gap as other fields, even without a neighbor. */
+.books-check-field {
+  @apply grid gap-y-1.5;
+  grid-template-rows: 1lh auto;
+}
+
+.books-check-field > .books-check-control {
+  grid-row: 2;
+}
+
+.books-check :deep(input) {
+  flex-shrink: 0;
+}
+
+.books-check :deep(.inline-flex.items-center) {
+  align-items: flex-start;
+}
+
+.books-check :deep([data-slot='label']) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.books-check-required :deep([data-slot='label']) {
+  @apply text-ink-red-7;
+}
+</style>
