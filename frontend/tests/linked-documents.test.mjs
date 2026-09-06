@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { loadMethod } from './helpers/vue-method.mjs';
-import { makeFyo, matchesStatus } from './helpers/accounting.mjs';
+import {
+  makeFyo,
+  matchesStatus,
+  mergeQueryFilters,
+} from './helpers/accounting.mjs';
 
 for (const control of ['Link', 'DynamicLink', 'MultiLabelLink']) {
   test(`${control} updates its captured parent after the control unmounts`, async () => {
@@ -60,18 +64,23 @@ test('list queries never send computed statuses to the database', async () => {
     {
       fyo,
       matchesStatus,
+      mergeQueryFilters,
       cloneDeep: structuredClone,
       toRaw: (x) => x,
     }
   );
   for (const filter of [
     ['not like', 'Cancelled'],
-    ['like', 'can'],
+    ['like', '%can%'],
     ['is null', ''],
   ]) {
     const list = {
       schemaName: 'JournalEntry',
       filters: { status: filter },
+      activeFilters: {},
+      requestId: 0,
+      $refs: {},
+      $nextTick: async () => {},
       $emit() {},
     };
     await updateData.call(list);
@@ -81,6 +90,10 @@ test('list queries never send computed statuses to the database', async () => {
   const lead = {
     schemaName: 'Lead',
     filters: { status: ['!=', 'Lost'] },
+    activeFilters: {},
+    requestId: 0,
+    $refs: {},
+    $nextTick: async () => {},
     $emit() {},
   };
   await updateData.call(lead);

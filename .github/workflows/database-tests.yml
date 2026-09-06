@@ -98,6 +98,18 @@ jobs:
         working-directory: ${{ runner.temp }}/books-bench
         run: bench --site books-test.localhost run-tests --app frappe_books
 
+      - name: Test frontend filters against Frappe
+        working-directory: ${{ github.workspace }}/frontend
+        env:
+          BOOKS_FILTER_TEST_BENCH: ${{ runner.temp }}/books-bench
+          BOOKS_FILTER_TEST_SITE: books-test.localhost
+        run: |
+          yarn install --frozen-lockfile
+          yarn test
+          yarn typecheck
+          yarn playwright install --with-deps chromium
+          yarn test:ui tests/ui/filter-dropdown.spec.ts
+
       - name: Check Python style
         run: |
           uvx ruff check frappe_books

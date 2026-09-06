@@ -37,7 +37,7 @@
             >
               <ListCell
                 class="min-w-0 flex-1"
-                :row="(row as RenderData)"
+                :row="row as RenderData"
                 :column="column"
                 @status-found="handleStatusFound"
               />
@@ -51,6 +51,7 @@
     <div v-if="data?.length" class="mt-auto">
       <hr class="border-outline-gray-1" />
       <Paginator
+        ref="paginator"
         :item-count="data.length"
         class="px-4"
         @index-change="setPageIndices"
@@ -87,6 +88,7 @@ import Button from 'src/components/Button.vue';
 import Paginator from 'src/components/Paginator.vue';
 import { fyo } from 'src/initFyo';
 import { isNumeric } from 'src/utils';
+import { mergeQueryFilters } from 'src/utils/filterQuery';
 import { matchesStatus } from 'src/utils/statusFilter';
 import { QueryFilter } from 'utils/db/types';
 import { PropType, defineComponent, toRaw } from 'vue';
@@ -126,6 +128,8 @@ export default defineComponent({
       pageEnd: 0,
       statusMap: {} as Record<string, string>,
       selectedItems: [] as string[],
+      activeFilters: {} as QueryFilter,
+      requestId: 0,
     };
   },
   computed: {
@@ -163,7 +167,13 @@ export default defineComponent({
         return;
       }
 
-      await this.updateData();
+      await this.updateData({});
+    },
+    filters: {
+      deep: true,
+      handler() {
+        void this.updateData();
+      },
     },
   },
   async mounted() {
@@ -197,16 +207,19 @@ export default defineComponent({
       fyo.db.observer.on(`delete:${this.schemaName}`, listener);
       fyo.doc.observer.on(`rename:${this.schemaName}`, listener);
     },
-    async updateData(filters?: Record<string, unknown>) {
-      const baseFilters = cloneDeep(toRaw(this.filters));
-      filters = cloneDeep({ ...baseFilters, ...filters });
-
+    async updateData(filters?: QueryFilter) {
+      if (filters !== undefined) this.activeFilters = cloneDeep(toRaw(filters));
+      const requestId = ++this.requestId;
+      const appliedFilters = mergeQueryFilters(
+        cloneDeep(toRaw(this.filters)),
+        cloneDeep(toRaw(this.activeFilters))
+      );
+      const query = cloneDeep(appliedFilters);
       const isStatusFilter =
-        'status' in filters &&
-        !fyo.db.fieldMap[this.schemaName]?.status;
-      const statusFilter = filters.status;
+        'status' in query && !fyo.db.fieldMap[this.schemaName]?.status;
+      const statusFilter = query.status;
       if (isStatusFilter) {
-        delete filters['status'];
+        delete query['status'];
       }
 
       const orderBy = ['created'];
@@ -216,10 +229,11 @@ export default defineComponent({
 
       const tableData = await fyo.db.getAll(this.schemaName, {
         fields: ['*'],
-        filters: filters as QueryFilter,
+        filters: query,
         orderBy,
       });
 
+      if (requestId !== this.requestId) return;
       const rows = tableData.map((d) => ({
         ...d,
         schema: fyo.schemaMap[this.schemaName],
@@ -227,7 +241,12 @@ export default defineComponent({
       this.data = isStatusFilter
         ? rows.filter((row) => matchesStatus(row, statusFilter))
         : rows;
-      this.$emit('updatedData', filters);
+      await this.$nextTick();
+      if (requestId !== this.requestId) return;
+      const paginator = this.$refs.paginator as
+        InstanceType<typeof Paginator> | undefined;
+      paginator?.setPageNo(filters !== undefined ? 1 : paginator.pageNo);
+      this.$emit('updatedData', appliedFilters);
     },
     updateSelection(selectedItems: string[]) {
       this.selectedItems = selectedItems;

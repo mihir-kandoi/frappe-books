@@ -98,8 +98,8 @@ test('computed filters work without rendered rows, for every offered operator', 
     cancelled: true,
   };
   for (const [filter, expected] of [
-    [['like', 'can'], true],
-    [['not like', 'can'], false],
+    [['like', '%can%'], true],
+    [['not like', '%can%'], false],
     [['=', 'Cancelled'], true],
     [['!=', 'Submitted'], true],
     [['>', 'a'], true],

@@ -1,6 +1,7 @@
 import { createApp, h, reactive, ref } from 'vue';
 import { FrappeUI, FrappeUIProvider } from 'frappe-ui';
 import { fyo } from 'src/initFyo';
+import List from 'src/pages/ListView/List.vue';
 import FilterDropdown from 'src/components/FilterDropdown.vue';
 import { models } from 'models';
 import { getSchemas } from 'schemas';
@@ -13,7 +14,37 @@ async function mount() {
   FrappeDatabaseDemux.prototype.getSchemaMap = async () => getSchemas('-', []);
   await fyo.db.init();
   fyo.doc.registerModels(models);
-  const state = reactive({ applied: {} as QueryFilter });
+  fyo.singles.SystemSettings = { currency: 'USD', displayPrecision: 2 } as any;
+  const state = reactive({
+    applied: {} as QueryFilter,
+    schemaName: 'SalesInvoice',
+    useDatabase: false,
+    queries: [] as QueryFilter[],
+  });
+  const list = ref<InstanceType<typeof List>>();
+  fyo.db.getAll = async (_schema, options) => {
+    state.queries.push(options?.filters ?? {});
+    if (state.useDatabase) {
+      const response = await fetch('/__filter_database_test', {
+        method: 'POST',
+        body: JSON.stringify(options?.filters ?? {}),
+      });
+      if (!response.ok) throw new Error(await response.text());
+      return response.json();
+    }
+    return Array.from({ length: 60 }, (_, index) => ({
+      name: `INV-${index + 1}`,
+      party: 'Test customer',
+      date: '2024-01-01',
+      submitted: true,
+      cancelled: false,
+      grandTotal: fyo.pesa(100),
+      baseGrandTotal: fyo.pesa(100),
+      outstandingAmount: fyo.pesa(
+        index % 3 === 0 ? 0 : index % 3 === 1 ? 50 : 100
+      ),
+    }));
+  };
   const filter = ref<InstanceType<typeof FilterDropdown>>();
   const app = createApp({
     render: () =>
@@ -33,13 +64,20 @@ async function mount() {
                   h('h1', { class: 'text-lg font-semibold' }, 'Sales Invoice'),
                   h(FilterDropdown, {
                     ref: filter,
-                    schemaName: 'SalesInvoice',
+                    schemaName: state.schemaName,
                     onChange: (query: QueryFilter) => {
                       state.applied = query;
+                      void list.value?.updateData(query);
                     },
                   }),
                 ]
               ),
+              h(List, {
+                ref: list,
+                schemaName: state.schemaName,
+                listConfig: { columns: ['name'] },
+                class: 'h-[calc(100vh-4rem)]',
+              }),
             ]),
         }
       ),
@@ -51,7 +89,7 @@ async function mount() {
   });
   app.provide(languageDirectionKey, ref('ltr'));
   app.mount('#app');
-  (window as any).filterFixture = { state, filter };
+  (window as any).filterFixture = { state, filter, list };
 }
 
 void mount();

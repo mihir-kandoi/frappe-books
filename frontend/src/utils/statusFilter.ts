@@ -1,32 +1,73 @@
-import { getDocStatus } from 'models/helpers';
+import {
+  getDocStatus,
+  getStatusText,
+  getLoyaltyProgramStatus,
+  getLoyaltyProgramStatusText,
+} from 'models/helpers';
 import { RenderData } from 'fyo/model/types';
 
 export function matchesStatus(row: RenderData, filter: unknown): boolean {
-  const [operator, expected] = Array.isArray(filter)
-    ? filter
-    : ['=', filter];
-  const status = getDocStatus(row).toLowerCase();
+  const conditions = Array.isArray(filter) ? filter : ['=', filter];
+  if (!conditions.length || conditions.length % 2)
+    throw new Error('Invalid status filter');
+  const isLoyaltyProgram = row.schema?.name === 'LoyaltyProgram';
+  const status = isLoyaltyProgram
+    ? getLoyaltyProgramStatus(row)
+    : getDocStatus(row);
+  const label = (
+    isLoyaltyProgram
+      ? getLoyaltyProgramStatusText(status)
+      : getStatusText(status as ReturnType<typeof getDocStatus>)
+  ).toLowerCase();
+  for (let index = 0; index < conditions.length; index += 2) {
+    if (
+      !matchesCondition(
+        label,
+        status.toLowerCase(),
+        conditions[index],
+        conditions[index + 1]
+      )
+    )
+      return false;
+  }
+  return true;
+}
+
+function matchesCondition(
+  label: string,
+  status: string,
+  operator: string,
+  expected: unknown
+): boolean {
   const value = String(expected ?? '').toLowerCase();
   switch (operator) {
     case '=':
-      return status === value;
+      return label === value || status === value;
     case '!=':
-      return status !== value;
+      return label !== value && status !== value;
     case 'like':
-      return status.includes(value);
+      return matchesPattern(label, value);
     case 'not like':
-      return !status.includes(value);
+      return !matchesPattern(label, value);
     case '>':
-      return status > value;
+      return label > value;
     case '<':
-      return status < value;
+      return label < value;
     case 'is null':
-      return status === '';
+      return label === '';
     case 'is not null':
-      return status !== '';
+      return label !== '';
     default:
       throw new Error(
         `Unsupported status filter operator: ${String(operator)}`
       );
   }
+}
+
+function matchesPattern(value: string, pattern: string) {
+  const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(
+    `^${escaped.replace(/%/g, '[\\s\\S]*').replace(/_/g, '[\\s\\S]')}$`,
+    'iu'
+  ).test(value);
 }

@@ -21,6 +21,9 @@ await build({
       export { ProfitAndLoss } from './reports/ProfitAndLoss/ProfitAndLoss';
       export { getJsonData, getCsvData } from './reports/commonExporter';
       export { matchesStatus } from './src/utils/statusFilter';
+      export * from './src/utils/filterQuery';
+      export * from './src/utils/filterFields';
+      export { getJsonExportData } from './src/utils/export';
     `,
     resolveDir: frontend,
   },
@@ -50,6 +53,15 @@ export const {
   getJsonData,
   getCsvData,
   matchesStatus,
+  getFilterFields,
+  getFieldLabel,
+  getJsonExportData,
+  FilterSet,
+  filterConditions,
+  conditionsForField,
+  defaultCondition,
+  isCompleteFilter,
+  mergeQueryFilters,
 } = createRequire(import.meta.url)(output);
 
 export async function makeFyo() {

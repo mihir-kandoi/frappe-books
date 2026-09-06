@@ -1,11 +1,11 @@
 <template>
   <FrappePopover
     v-if="fields.length"
-    ref="filterPopover"
     side="bottom"
     align="end"
     :offset="8"
-    @close="emitFilterChange"
+    :open="isOpen"
+    @update:open="onOpenChange"
   >
     <template #trigger>
       <FrappeButton icon-left="lucide-list-filter" size="md">
@@ -16,7 +16,9 @@
       :aria-label="t`Filters`"
       class="flex max-h-[var(--reka-popover-content-available-height)] w-[40rem] max-w-[calc(100vw-1.5rem)] flex-col"
     >
-      <h2 class="shrink-0 px-4 pb-3 pt-4 text-base font-semibold text-ink-gray-9">
+      <h2
+        class="shrink-0 px-4 pb-3 pt-4 text-base font-semibold text-ink-gray-9"
+      >
         {{ t`Filters` }}
       </h2>
       <div class="min-h-0 overflow-y-auto px-4 pb-4">
@@ -39,7 +41,7 @@
                 options: fieldOptions,
               }"
               :value="filter.fieldname"
-              @change="(value) => updateNewFilters(i, 'fieldname', value)"
+              @change="(value) => updateFilter(filter, 'fieldname', value)"
             />
             <Select
               :border="true"
@@ -49,24 +51,46 @@
                 label: t`Condition`,
                 fieldname: 'condition',
                 fieldtype: 'Select',
-                options: conditionsForDropdown,
+                options: conditionsFor(filter),
               }"
               :value="filter.condition"
-              @change="(value) => updateNewFilters(i, 'condition', value)"
+              @change="(value) => updateFilter(filter, 'condition', value)"
             />
-            <Data
+            <div
+              v-if="isValuelessCondition(filter.condition)"
+              class="col-span-2 h-8 sm:col-span-1"
+            />
+            <Select
+              v-else-if="fieldFor(filter)?.fieldtype === 'Check'"
               :border="true"
               :show-label="true"
               class="col-span-2 min-w-0 sm:col-span-1"
               :df="{
-                label: t`Value`,
-                placeholder: t`Value`,
                 fieldname: 'value',
-                fieldtype: 'Data',
+                label: t`Value`,
+                fieldtype: 'Select',
+                options: checkOptions,
               }"
-              :value="String(filter.value)"
-              @input="(event) => updateFilterValueFromInput(i, event)"
-              @change="(value) => updateNewFilters(i, 'value', value)"
+              :value="
+                filter.value === true
+                  ? '1'
+                  : filter.value === false
+                    ? '0'
+                    : String(filter.value ?? '')
+              "
+              @change="(value) => updateFilter(filter, 'value', value)"
+            />
+            <FrappeTextInput
+              v-else
+              class="col-span-2 min-w-0 sm:col-span-1"
+              variant="outline"
+              size="md"
+              :label="t`Value`"
+              :placeholder="valuePlaceholder(filter)"
+              :model-value="String(filter.value ?? '')"
+              @update:model-value="
+                (value) => updateFilter(filter, 'value', value)
+              "
               @keydown.enter.stop.prevent="applyFilters"
             />
             <FrappeButton
@@ -76,7 +100,7 @@
               class="col-start-3 row-start-1 mb-1 justify-self-center sm:col-start-4"
               :tooltip="t`Remove filter`"
               :aria-label="t`Remove filter ${i + 1}`"
-              @click="removeFilter(i)"
+              @click="removeFilter(filter.id)"
             />
           </div>
         </div>
@@ -84,6 +108,9 @@
           {{ t`No filters selected` }}
         </p>
       </div>
+      <p v-if="error" role="alert" class="px-4 pb-3 text-base text-ink-red-5">
+        {{ error }}
+      </p>
       <footer
         class="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-outline-gray-1 p-3"
       >
@@ -108,128 +135,48 @@
   </FrappePopover>
 </template>
 <script lang="ts">
-import { Field, FieldTypeEnum } from 'schemas/types';
-import { Button as FrappeButton, Popover as FrappePopover } from 'frappe-ui';
+import { Field } from 'schemas/types';
+import {
+  Button as FrappeButton,
+  Popover as FrappePopover,
+  TextInput as FrappeTextInput,
+} from 'frappe-ui';
 import { fyo } from 'src/initFyo';
-import { getRandomString } from 'utils';
 import { defineComponent } from 'vue';
-import Data from './Controls/Data.vue';
 import Select from './Controls/Select.vue';
 import { QueryFilter } from 'utils/db/types';
 import { t } from 'fyo';
-
-const conditions = [
-  { label: t`Is`, value: '=' },
-  { label: t`Is Not`, value: '!=' },
-  { label: t`Contains`, value: 'like' },
-  { label: t`Does Not Contain`, value: 'not like' },
-  { label: t`Greater Than`, value: '>' },
-  { label: t`Less Than`, value: '<' },
-  { label: t`Is Empty`, value: 'is null' },
-  { label: t`Is Not Empty`, value: 'is not null' },
-] as const;
-
-type Condition = (typeof conditions)[number]['label'];
-
-type Filter = {
-  id: string;
-  fieldname: string;
-  condition: Condition;
-  value: QueryFilter[string];
-  implicit: boolean;
-};
-
-const fieldLabelAcronyms = new Set(['ERP', 'GST', 'GSTIN', 'HSN', 'ID', 'POS', 'SAC', 'UOM']);
-
-function getFieldLabel(field: Field): string {
-  const label = field.label?.trim();
-  if (label && label !== field.fieldname) {
-    return label;
-  }
-
-  return field.fieldname
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/[_-]+/g, ' ')
-    .split(' ')
-    .filter(Boolean)
-    .map((word, index) => {
-      const upperWord = word.toUpperCase();
-      if (fieldLabelAcronyms.has(upperWord)) {
-        return upperWord;
-      }
-
-      const lowerWord = word.toLowerCase();
-      if (index > 0 && ['and', 'an', 'a', 'from', 'by', 'on'].includes(lowerWord)) {
-        return lowerWord;
-      }
-
-      return lowerWord[0].toUpperCase() + lowerWord.slice(1);
-    })
-    .join(' ');
-}
+import { getFilterFields, getFieldLabel } from 'src/utils/filterFields';
+import {
+  FilterSet,
+  conditionsForField,
+  defaultCondition,
+  isCompleteFilter,
+  isValuelessCondition,
+  type FilterRow,
+  type FilterCondition,
+  type FilterValue,
+} from 'src/utils/filterQuery';
 
 export default defineComponent({
   name: 'FilterDropdown',
-  components: {
-    FrappePopover,
-    Select,
-    Data,
-    FrappeButton,
-  },
+  components: { FrappePopover, FrappeTextInput, Select, FrappeButton },
   props: { schemaName: { type: String, required: true } },
   emits: ['change'],
   data() {
     return {
-      filters: [] as Filter[],
-      newFilters: [] as Filter[],
+      filterSet: new FilterSet(),
+      activeFilterCount: 0,
+      isOpen: false,
+      error: '',
     };
   },
   computed: {
     fields(): Field[] {
-      const excludedFieldsTypes: string[] = [
-        FieldTypeEnum.Table,
-        FieldTypeEnum.Attachment,
-        FieldTypeEnum.AttachImage,
-      ];
-
-      const listViewSettings = fyo.models[this.schemaName]?.getListViewSettings?.(fyo);
-      const statusField = listViewSettings?.columns?.[1] as any;
-
-      const fields = fyo.schemaMap[this.schemaName]?.fields ?? [];
-      const filteredFields = fields.filter((f) => {
-        if (f.filter) {
-          return true;
-        }
-
-        if (excludedFieldsTypes.includes(f.fieldtype)) {
-          return false;
-        }
-
-        if (f.computed || f.meta || f.readOnly) {
-          return false;
-        }
-
-        return true;
-      });
-
-      if (statusField && statusField.fieldname) {
-        const statusFieldExists = filteredFields.some(
-          (field) => field.fieldname === statusField.fieldname,
-        );
-
-        if (!statusFieldExists) {
-          const originalStatusField = fields.find(
-            (field) => field.fieldname === statusField.fieldname,
-          );
-          if (originalStatusField) {
-            filteredFields.unshift(originalStatusField);
-          } else {
-            filteredFields.unshift(statusField);
-          }
-        }
-      }
-
-      return filteredFields;
+      return getFilterFields(
+        fyo.schemaMap[this.schemaName]?.fields ?? [],
+        fyo.models[this.schemaName]?.getListViewSettings?.(fyo)?.columns
+      );
     },
     fieldOptions(): { label: string; value: string }[] {
       return this.fields.map((df) => ({
@@ -237,170 +184,116 @@ export default defineComponent({
         value: df.fieldname,
       }));
     },
-    conditions(): { label: string; value: string }[] {
-      return [...conditions];
+    explicitFilters(): FilterRow[] {
+      return this.filterSet.rows.filter((row) => !row.implicit);
     },
-    conditionsForDropdown(): { label: string; value: string }[] {
-      return conditions.map((c) => ({
-        label: c.label,
-        value: c.label,
-      }));
-    },
-    explicitFilters(): Filter[] {
-      return this.filters.filter((f) => !f.implicit);
-    },
-    activeFilterCount(): number {
-      return this.explicitFilters.filter((filter) => filter.value).length;
+    checkOptions() {
+      return [
+        { label: t`Yes`, value: '1' },
+        { label: t`No`, value: '0' },
+      ];
     },
     filterAppliedMessage(): string {
-      if (this.activeFilterCount === 1) {
-        return this.t`1 filter applied`;
-      }
-
-      return this.t`${this.activeFilterCount} filters applied`;
+      return this.activeFilterCount === 1
+        ? t`1 filter applied`
+        : t`${this.activeFilterCount} filters applied`;
     },
   },
-
+  watch: {
+    schemaName() {
+      this.filterSet = new FilterSet();
+      this.activeFilterCount = 0;
+      this.error = '';
+      this.isOpen = false;
+      this.$emit('change', {});
+    },
+  },
   methods: {
-    getConditionLabel(value: string): string {
-      const condition = conditions.find((c) => c.value === value);
-      return condition ? condition.label : value;
+    isValuelessCondition,
+    fieldFor(filter: FilterRow) {
+      return this.fields.find((field) => field.fieldname === filter.fieldname);
     },
-
-    getConditionValue(label: string): string {
-      const condition = conditions.find((c) => c.label === label);
-      return condition ? condition.value : label;
+    conditionsFor(filter: FilterRow) {
+      return [...conditionsForField(this.fieldFor(filter))];
     },
-
-    addNewFilter(): void {
-      const df = this.fields[0];
-      if (!df) {
-        return;
-      }
-
-      this.addFilter(df.fieldname, 'like', '', false);
+    valuePlaceholder(filter: FilterRow) {
+      const type = this.fieldFor(filter)?.fieldtype;
+      if (type === 'Date') return 'YYYY-MM-DD';
+      if (type === 'Datetime') return 'YYYY-MM-DDTHH:mm:ss';
+      return t`Value`;
+    },
+    onOpenChange(open: boolean) {
+      if (open) this.isOpen = true;
+      else this.applyFilters();
+    },
+    addNewFilter() {
+      const field = this.fields[0];
+      if (field) this.filterSet.add(field.fieldname, defaultCondition(field));
+      this.error = '';
     },
     addFilter(
       fieldname: string,
-      condition: string,
-      value: Filter['value'],
-      implicit?: boolean,
-    ): void {
-      const displayCondition = this.getConditionLabel(condition);
-      const newFilter = {
-        id: getRandomString(),
-        fieldname,
-        condition: displayCondition,
-        value,
-        implicit: !!implicit,
-      };
-      this.filters.push(newFilter);
-      this.newFilters.push(newFilter);
+      condition: FilterCondition,
+      value: FilterValue,
+      implicit = false
+    ) {
+      this.filterSet.add(fieldname, condition, value, implicit);
     },
-
-    applyFilters() {
-      this.closeFilterPopover();
+    removeFilter(id: number) {
+      this.filterSet.remove(id);
+      this.error = '';
     },
-
-    removeFilter(index: number): void {
-      this.filters.splice(index, 1);
-      this.newFilters.splice(index, 1);
-    },
-
-    clearAllFilters(): void {
-      this.filters = [];
-      this.newFilters = [];
-
-      this.$emit('change', {});
-    },
-
-    updateNewFilters<K extends keyof Filter>(index: number, key: K, value: Filter[K]) {
-      if (key === 'condition') {
-        const displayCondition = this.getConditionLabel(value as string);
-        this.newFilters![index][key] = displayCondition as Filter[K];
-        this.filters[index][key] = displayCondition as Filter[K];
-      } else {
-        this.newFilters![index][key] = value;
-        this.filters[index][key] = value;
-      }
-    },
-
-    updateFilterValueFromInput(index: number, event: Event): void {
-      const target = event.target;
-      if (!(target instanceof HTMLInputElement)) {
-        return;
-      }
-
-      this.updateNewFilters(index, 'value', target.value);
-    },
-
-    closeFilterPopover(): void {
-      const popover = this.$refs.filterPopover as
-        | InstanceType<typeof FrappePopover>
-        | undefined;
-      popover?.close();
-    },
-
-    setFilter(filters: QueryFilter, implicit?: boolean): void {
-      this.filters = [];
-      this.newFilters = [];
-
-      Object.keys(filters).map((fieldname) => {
-        let parts = filters[fieldname];
-        let condition: Condition;
-        let value: Filter['value'];
-
-        if (Array.isArray(parts)) {
-          condition = parts[0] as Condition;
-          value = parts[1] as Filter['value'];
-        } else {
-          condition = '=';
-          value = parts;
-        }
-
-        this.addFilter(fieldname, condition, value, implicit);
-      });
-
+    clearAllFilters() {
+      this.filterSet.clear();
       this.emitFilterChange();
     },
-
-    emitFilterChange(): void {
-      const filters: Record<string, [Condition, Filter['value']]> = {};
-
-      for (const { condition, value, fieldname } of this.newFilters) {
-        if (value === '' || value === null || value === undefined) {
-          continue;
-        }
-
-        const sqlCondition = this.getConditionValue(condition);
-
-        if (fieldname === 'numberSeries') {
-          filters['name'] = [sqlCondition, value];
-        } else {
-          filters[fieldname] = [sqlCondition, value];
+    updateFilter<K extends 'fieldname' | 'condition' | 'value'>(
+      row: FilterRow,
+      key: K,
+      value: FilterRow[K]
+    ) {
+      row[key] = value;
+      this.error = '';
+      if (key === 'fieldname') {
+        row.value = '';
+        if (
+          !this.conditionsFor(row).some(
+            (option) => option.value === row.condition
+          )
+        ) {
+          row.condition = defaultCondition(this.fieldFor(row));
         }
       }
-
-      this.$emit('change', filters);
-      this.filters = [...this.newFilters];
-
-      if (this.newFilters.length) {
-        this.filters = this.filters.filter(
-          (filter) => filter.condition && filter.value && filter.fieldname,
-        );
-        this.filters.push(this.newFilters[this.newFilters.length - 1]);
+    },
+    applyFilters() {
+      if (this.emitFilterChange()) this.isOpen = false;
+    },
+    setFilter(filters: QueryFilter, implicit = false) {
+      const query = { ...filters };
+      if (
+        'name' in query &&
+        !this.fields.some((field) => field.fieldname === 'name') &&
+        this.fields.some((field) => field.fieldname === 'numberSeries')
+      ) {
+        query.numberSeries = query.name;
+        delete query.name;
       }
-
-      this.filters = Array.from(
-        new Map(
-          this.filters.map((filter) => [
-            `${filter.condition}-${filter.value}-${filter.fieldname}`,
-            filter,
-          ]),
-        ).values(),
-      );
-      // Keep draft indices aligned with the remaining visible rows.
-      this.newFilters = [...this.filters];
+      this.filterSet.setQuery(query, implicit);
+      this.emitFilterChange();
+    },
+    emitFilterChange(): boolean {
+      try {
+        const query = this.filterSet.toQuery(this.fields);
+        this.filterSet.normalize();
+        this.activeFilterCount =
+          this.explicitFilters.filter(isCompleteFilter).length;
+        this.error = '';
+        this.$emit('change', query);
+        return true;
+      } catch (error) {
+        this.error = (error as Error).message;
+        return false;
+      }
     },
   },
 });

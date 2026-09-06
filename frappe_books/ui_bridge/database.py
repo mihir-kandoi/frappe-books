@@ -11,6 +11,7 @@ import frappe
 from frappe.utils import cast, cint, flt, get_datetime, get_system_timezone
 
 from frappe_books.ui_bridge.dispatch import call_handler
+from frappe_books.ui_bridge.filters import docstatus_filter, filter_pairs, validate_filter_value
 from frappe_books.ui_bridge.mapping import (
 	SOURCE_META_TO_TARGET,
 	custom_field_mapping,
@@ -26,7 +27,6 @@ from frappe_books.ui_bridge.mapping import (
 READ_METHODS = {"get", "getAll", "getSingleValues", "exists", "close"}
 WRITE_METHODS = {"insert", "update", "rename", "delete", "deleteAll"}
 PROTECTED_WRITE_SCHEMAS = {"AccountingLedgerEntry", "StockLedgerEntry"}
-FILTER_OPERATORS = {"=", "!=", ">", ">=", "<", "<=", "in", "not in", "like", "includes"}
 NUMERIC_FIELDTYPES = {"Check", "Currency", "Float", "Int", "Long Int", "Percent"}
 
 
@@ -69,7 +69,7 @@ class BooksDatabaseBridge:
 		target = target_doctype(source_schema)
 		requested = self._requested_source_fields(source_schema, options.fields)
 		target_fields = self._target_fields(source_schema, requested)
-		filters = self._target_filters(source_schema, options.filters or {})
+		filters = self._target_filters(source_schema, options.filters if options.filters is not None else {})
 		order_by = self._order_by(source_schema, options.orderBy, options.order)
 		group_by = self._group_by(source_schema, options.groupBy)
 		rows = self._get_list_rows(
@@ -350,26 +350,19 @@ class BooksDatabaseBridge:
 			frappe.throw("Books filters must be an object")
 		meta = frappe.get_meta(target_doctype(source_schema))
 		translated = []
-		submitted = filters.get("submitted")
-		cancelled = filters.get("cancelled")
-		if submitted is not None or cancelled is not None:
-			status_filter = self._docstatus_filter(submitted, cancelled)
-			if isinstance(status_filter, list):
-				translated.append(["docstatus", *status_filter])
-			else:
-				translated.append(["docstatus", "=", status_filter])
+		if "submitted" in filters or "cancelled" in filters:
+			translated.append(docstatus_filter(filters))
 		for source_name, value in filters.items():
 			if source_name in {"submitted", "cancelled"}:
 				continue
 			target_name = target_field(source_schema, source_name)
-			conditions = value if isinstance(value, list) else ["=", value]
-			if len(conditions) % 2:
-				frappe.throw(f"Invalid filter for Books field {source_name}")
-			for index in range(0, len(conditions), 2):
-				operator = str(conditions[index]).lower()
-				if operator not in FILTER_OPERATORS:
-					frappe.throw(f"Unsupported Books filter operator: {operator}")
-				comparison = conditions[index + 1]
+			for operator, comparison in filter_pairs(source_name, value):
+				if operator in {"is null", "is not null"}:
+					translated.append([target_name, "is", "not set" if operator == "is null" else "set"])
+					continue
+				values = comparison if operator in {"in", "not in"} else [comparison]
+				for item in values:
+					validate_filter_value(meta, target_name, operator, item)
 				if operator == "includes":
 					operator = "like"
 					comparison = f"%{comparison}%"
@@ -451,15 +444,6 @@ class BooksDatabaseBridge:
 			doc.docstatus = 1
 		elif "submitted" in values:
 			doc.docstatus = 0
-
-	def _docstatus_filter(self, submitted, cancelled):
-		if cancelled is True:
-			return 2
-		if submitted is True:
-			return 1 if cancelled is False else ["in", [1, 2]]
-		if submitted is False:
-			return 0
-		return ["!=", 2]
 
 	def _single_value_rows(self):
 		rows = []
