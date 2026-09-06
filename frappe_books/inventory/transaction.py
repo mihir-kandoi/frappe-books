@@ -14,6 +14,7 @@ from frappe_books.inventory.stock import (
 	populate_stock_row,
 	validate_transfer_rows,
 )
+from frappe_books.inventory.valuation import transaction_stock_value
 from frappe_books.series import SeriesNamingMixin
 
 
@@ -109,8 +110,10 @@ def transfer_rows(transaction):
 
 
 def post_stock_accounts(transaction):
+	amount = _stock_posting_amount(transaction)
+	if amount == 0:
+		return
 	settings = frappe.get_single("Books Inventory Settings")
-	amount = abs(as_decimal(transaction.grand_total))
 	posting = LedgerPosting(transaction)
 	is_return = bool(transaction.return_against)
 	if transaction.transfer_type == "sales":
@@ -130,6 +133,13 @@ def post_stock_accounts(transaction):
 			reverse=is_return,
 		)
 	posting.post()
+
+
+def _stock_posting_amount(transaction):
+	"""Shipments move stock out at cost; receipts bring it in at the billed value."""
+	if transaction.transfer_type == "sales":
+		return transaction_stock_value(transaction)
+	return abs(as_decimal(transaction.grand_total))
 
 
 def _debit_credit(posting, debit_account, credit_account, amount, reverse):

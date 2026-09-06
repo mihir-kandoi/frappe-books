@@ -1,23 +1,24 @@
 """Stock ledger and stock balance report calculations."""
 
-from collections import defaultdict, deque
+from collections import defaultdict
 
 import frappe
 from frappe import _
 from frappe.utils import get_datetime
 
 from frappe_books.accounting.money import as_decimal, rounded
+from frappe_books.inventory.valuation import computed_entries
 
 
 def stock_ledger(filters=None):
 	filters = frappe._dict(filters or {})
-	rows = _computed_entries(filters)
+	rows = computed_entries(filters)
 	return _ledger_columns(), rows
 
 
 def stock_balance(filters=None):
 	filters = frappe._dict(filters or {})
-	rows = _computed_entries(filters, include_before=True)
+	rows = computed_entries(filters, include_before=True)
 	grouped = defaultdict(_empty_balance)
 	from_date = get_datetime(filters.from_date) if filters.from_date else None
 	to_date = get_datetime(filters.to_date) if filters.to_date else None
@@ -54,79 +55,6 @@ def stock_balance(filters=None):
 		)
 	data.sort(key=lambda row: (row["item"], row["location"], row.get("batch") or ""))
 	return _balance_columns(), data
-
-
-def _computed_entries(filters, include_before=False):
-	db_filters = {}
-	for fieldname in ("item", "location", "batch", "serial_number", "reference_type", "reference_name"):
-		if filters.get(fieldname):
-			db_filters[fieldname] = filters[fieldname]
-	if not include_before:
-		if filters.get("from_date") and filters.get("to_date"):
-			db_filters["date"] = ["between", [filters.from_date, filters.to_date]]
-		elif filters.get("from_date"):
-			db_filters["date"] = [">=", filters.from_date]
-		elif filters.get("to_date"):
-			db_filters["date"] = ["<=", filters.to_date]
-	elif filters.get("to_date"):
-		db_filters["date"] = ["<=", filters.to_date]
-	raw = frappe.get_all(
-		"Books Stock Ledger Entry",
-		filters=db_filters,
-		fields=[
-			"date",
-			"item",
-			"location",
-			"batch",
-			"serial_number",
-			"quantity",
-			"rate",
-			"reference_type",
-			"reference_name",
-		],
-		order_by="date asc, creation asc",
-	)
-	layers = defaultdict(deque)
-	balances = defaultdict(lambda: {"quantity": as_decimal(0), "value": as_decimal(0)})
-	computed = []
-	for row in raw:
-		key = (row.item, row.location, row.batch or "")
-		quantity = as_decimal(row.quantity)
-		rate = as_decimal(row.rate)
-		value_change = as_decimal(0)
-		if quantity > 0:
-			layers[key].append([quantity, rate])
-			value_change = quantity * rate
-		elif quantity < 0:
-			remaining = abs(quantity)
-			while remaining and layers[key]:
-				layer_quantity, layer_rate = layers[key][0]
-				taken = min(remaining, layer_quantity)
-				value_change -= taken * layer_rate
-				remaining -= taken
-				layer_quantity -= taken
-				if layer_quantity:
-					layers[key][0][0] = layer_quantity
-				else:
-					layers[key].popleft()
-			if remaining:
-				value_change -= remaining * rate
-		balances[key]["quantity"] += quantity
-		balances[key]["value"] += value_change
-		balance_quantity = balances[key]["quantity"]
-		balance_value = balances[key]["value"]
-		valuation_rate = balance_value / balance_quantity if balance_quantity else as_decimal(0)
-		computed.append(
-			{
-				**row,
-				"incoming_rate": rounded(rate if quantity > 0 else 0),
-				"value_change": rounded(value_change),
-				"balance_quantity": balance_quantity,
-				"balance_value": rounded(balance_value),
-				"valuation_rate": rounded(valuation_rate),
-			}
-		)
-	return computed
 
 
 def _empty_balance():
