@@ -214,15 +214,9 @@ def _post_direction(posting, account, amount, party=None, credit=False, reverse=
 def _populate_invoice_defaults(invoice):
 	if invoice.transaction_type != "quote" and invoice.party and not invoice.get("account"):
 		invoice.account = frappe.db.get_value("Books Party", invoice.party, "default_account")
+	items = _item_details({row.item for row in invoice.get("items", []) if row.item})
 	for row in invoice.get("items", []):
-		if not row.item:
-			continue
-		item = frappe.db.get_value(
-			"Books Item",
-			row.item,
-			["item_code", "description", "rate", "unit", "tax", "income_account", "expense_account"],
-			as_dict=True,
-		)
+		item = items.get(row.item)
 		if not item:
 			continue
 		for fieldname in ("item_code", "description", "rate", "unit", "tax"):
@@ -244,10 +238,30 @@ def _populate_invoice_defaults(invoice):
 			)
 
 
+def _item_details(names):
+	if not names:
+		return {}
+	rows = frappe.get_all(
+		"Books Item",
+		filters={"name": ["in", sorted(names)]},
+		fields=[
+			"name",
+			"item_code",
+			"description",
+			"rate",
+			"unit",
+			"tax",
+			"income_account",
+			"expense_account",
+		],
+	)
+	return {row.name: row for row in rows}
+
+
 def _tax_details(tax_name):
 	if not tax_name:
 		return []
-	return frappe.get_doc("Books Tax", tax_name).details
+	return frappe.get_cached_doc("Books Tax", tax_name).details
 
 
 def _item_discount(row, amount):
