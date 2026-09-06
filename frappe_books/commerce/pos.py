@@ -80,35 +80,42 @@ def close_shift(shift):
 
 
 def transacted_amounts(from_date, to_date):
-	invoice_names = frappe.get_all(
+	invoices = frappe.get_all(
 		"Books Sales Invoice",
 		filters={"is_pos": 1, "docstatus": 1, "date": ["between", [from_date, to_date]]},
-		pluck="name",
+		fields=["name", "return_against"],
 	)
-	if not invoice_names:
+	if not invoices:
 		return {}
-	payments = frappe.get_all(
+	references = frappe.get_all(
 		"Books Payment For",
-		filters={"reference_type": "Books Sales Invoice", "reference_name": ["in", invoice_names]},
+		filters={
+			"reference_type": "Books Sales Invoice",
+			"reference_name": ["in", [invoice.name for invoice in invoices]],
+		},
 		fields=["parent", "reference_name"],
 	)
+	payments = _submitted_payments({reference.parent for reference in references})
+	returns = {invoice.name for invoice in invoices if invoice.return_against}
 	result = defaultdict(as_decimal)
-	for reference in payments:
-		payment = frappe.db.get_value(
-			"Books Payment",
-			{"name": reference.parent, "docstatus": 1},
-			["payment_method", "amount"],
-			as_dict=True,
-		)
+	for reference in references:
+		payment = payments.get(reference.parent)
 		if not payment:
 			continue
-		sign = (
-			-1
-			if frappe.db.get_value("Books Sales Invoice", reference.reference_name, "return_against")
-			else 1
-		)
+		sign = -1 if reference.reference_name in returns else 1
 		result[payment.payment_method] += sign * as_decimal(payment.amount)
 	return {method: rounded(amount) for method, amount in result.items()}
+
+
+def _submitted_payments(names):
+	if not names:
+		return {}
+	rows = frappe.get_all(
+		"Books Payment",
+		filters={"name": ["in", sorted(names)], "docstatus": 1},
+		fields=["name", "payment_method", "amount"],
+	)
+	return {row.name: row for row in rows}
 
 
 def _seed_expected_amounts(shift):
@@ -141,10 +148,12 @@ def _set_shift_open(is_open):
 
 
 def _open_shift_name():
-	for name in frappe.get_all("Books Pos Opening Shift", order_by="opening_date desc", pluck="name"):
-		if not frappe.db.exists("Books Pos Closing Shift", {"opening_shift": name}):
-			return name
-	return None
+	closed = [name for name in frappe.get_all("Books Pos Closing Shift", pluck="opening_shift") if name]
+	filters = {"name": ["not in", closed]} if closed else {}
+	names = frappe.get_all(
+		"Books Pos Opening Shift", filters=filters, order_by="opening_date desc", limit=1, pluck="name"
+	)
+	return names[0] if names else None
 
 
 def _validate_cash_rows(rows):
