@@ -1,5 +1,6 @@
 <template>
 	<FrappeHoverCard
+		v-model:open="previewOpen"
 		side="bottom"
 		align="center"
 		:offset="8"
@@ -7,14 +8,21 @@
 		:leave-delay="0.15"
 	>
 		<template #trigger>
-			<FrappeButton
-				variant="ghost"
-				size="xs"
-				icon="lucide-chevron-right"
-				:label="t`Open linked entry`"
-				@pointerdown.prevent
-				@click.stop="$emit('open')"
-			/>
+			<!-- Preview visibility belongs to the hover target, not the button's pressed state. -->
+			<span
+				class="inline-flex shrink-0"
+				@focusin="previewOpen = true"
+				@focusout="previewOpen = false"
+			>
+				<FrappeButton
+					variant="ghost"
+					size="xs"
+					icon="lucide-chevron-right"
+					:label="t`Open linked entry`"
+					@pointerdown.prevent
+					@click.stop="$emit('open')"
+				/>
+			</span>
 		</template>
 		<QuickView :schema-name="schemaName" :name="value" />
 	</FrappeHoverCard>
@@ -33,5 +41,8 @@ export default defineComponent({
 		value: { type: String, default: "" },
 	},
 	emits: ["open"],
+	data() {
+		return { previewOpen: false };
+	},
 });
 </script>

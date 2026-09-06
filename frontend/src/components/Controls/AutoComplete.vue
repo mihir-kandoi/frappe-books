@@ -54,7 +54,6 @@
           v-if="value && showClearButton"
           variant="ghost"
           size="xs"
-          class="!size-5 !rounded-2"
           :aria-label="t`Clear value`"
           @pointerdown.prevent
           @click.stop="clearSelection(clear, setOpen)"
@@ -72,7 +71,6 @@
         <FrappeButton
           variant="ghost"
           size="xs"
-          class="!size-5 !rounded-2"
           :aria-label="open ? t`Close options` : t`Open options`"
           @pointerdown.prevent
           @click.stop="setOpen(!open)"

@@ -89,6 +89,9 @@ async function mount() {
               onSetPaidAmount: (amount: any) => {
                 state.paidAmount = amount;
               },
+              onSetCustomer: (name: string) => {
+                state.invoice.party = name;
+              },
               onSetPaymentMethod: (method: string) => {
                 state.paymentMethod = method;
               },

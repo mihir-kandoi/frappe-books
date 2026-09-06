@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -264,4 +264,64 @@ async function showModal(page: Page, name: string) {
       fixture.fillCart();
     fixture.state.modal = name;
   }, name);
+}
+
+for (const dark of [false, true]) {
+  test(`link actions share their size and hover styling in ${dark ? 'dark' : 'light'} mode`, async ({ page }) => {
+    await page.evaluate((dark) => {
+      document.documentElement.classList.toggle('dark', dark);
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    }, dark);
+    const clear = page.getByRole('button', { name: 'Clear value', exact: true }).first();
+    const linked = page.getByRole('button', { name: 'Open linked entry', exact: true }).first();
+    const options = clear.locator('..').getByRole('button', { name: 'Open options', exact: true });
+    const preview = page.locator('[data-slot="content"]').filter({
+      has: page.getByText('Party', { exact: true }),
+    });
+
+    const normal = await actionStyle(clear);
+    expect(await actionStyle(linked)).toEqual(normal);
+    expect(await actionStyle(options)).toEqual(normal);
+    await clear.hover();
+    await page.screenshot({ animations: 'disabled', path: test.info().outputPath('clear-hover.png') });
+    const hovered = await actionStyle(clear);
+    expect(hovered.backgroundColor).not.toBe(normal.backgroundColor);
+    await linked.hover();
+    await expect(preview).toBeVisible();
+    await expect.poll(() => actionStyle(linked)).toEqual(hovered);
+    await page.screenshot({ animations: 'disabled', path: test.info().outputPath('linked-hover.png') });
+    await options.hover();
+    await expect.poll(() => actionStyle(options)).toEqual(hovered);
+    await expect(preview).toBeHidden();
+
+    // Opening a preview must still work from the keyboard without changing the link.
+    await linked.focus();
+    await expect(preview).toBeVisible();
+    await page.keyboard.press('Tab');
+    await expect(options).toBeFocused();
+    await expect(preview).toBeHidden();
+    await options.click();
+    await expect(page.getByRole('option', { name: 'Aarav Shah', exact: true })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await clear.click();
+    await expect(clear).toBeHidden();
+    await page.getByRole('option', { name: 'Aarav Shah', exact: true }).click();
+    await expect(clear).toBeVisible();
+    expect(await page.evaluate(() => (window as any).posFixture.state.invoice.party)).toBe('Aarav Shah');
+    await linked.click();
+    await expect(page).toHaveURL(/\/edit\/Party\/Aarav%20Shah/);
+  });
+}
+
+async function actionStyle(button: Locator) {
+  return button.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      width: style.width,
+      height: style.height,
+      borderRadius: style.borderRadius,
+      backgroundColor: style.backgroundColor,
+      color: style.color,
+    };
+  });
 }
