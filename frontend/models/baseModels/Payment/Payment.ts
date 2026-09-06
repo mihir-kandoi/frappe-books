@@ -43,7 +43,6 @@ export class Payment extends Transactional {
   referenceType?: ModelNameEnum.SalesInvoice | ModelNameEnum.PurchaseInvoice;
   for?: PaymentFor[];
   _accountsMap?: AccountTypeMap;
-  initialAmount?: Money;
 
   async paymentMethodDoc() {
     return (await this.loadAndGetLink('paymentMethod')) as PaymentMethod;
@@ -638,7 +637,6 @@ export class Payment extends Transactional {
       const totalAmount = await this.getReferenceOutstandingAmount();
 
       if ((value as Money).gt(totalAmount)) {
-        this.amount = this.initialAmount;
         throw new ValidationError(
           this.fyo.t`Payment amount cannot exceed ${this.fyo.format(
             totalAmount,
