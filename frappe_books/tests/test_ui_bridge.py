@@ -420,6 +420,20 @@ class IntegrationTestUiBridge(IntegrationTestCase):
 		self.assertEqual(rows[0]["parent"], invoice_name)
 		self.assertEqual(rows[0]["parentSchemaName"], "SalesInvoice")
 
+	def test_list_reads_return_every_matching_row(self):
+		prefix = unique_name("Bridge Color")
+		for index in range(501):
+			frappe.get_doc(
+				{"doctype": "Books Color", "name": f"{prefix} {index}", "hexvalue": "#000000"}
+			).insert()
+		filters = {"name": ["like", f"{prefix}%"]}
+
+		self.assertEqual(len(self.bridge.get_all("Color", {"filters": filters})), 501)
+		self.assertEqual(len(self.bridge.get_all("Color", {"filters": filters, "offset": 500})), 1)
+		self.assertEqual(
+			len(self.bridge.get_all("Color", {"filters": filters, "limit": 10, "offset": 495})), 6
+		)
+
 	def test_submit_and_cancel_use_atomic_server_lifecycle(self):
 		receivable = make_account("Bridge Receivable", account_type="Receivable")
 		income = make_account("Bridge Income", root_type="Income", account_type="Income Account")
