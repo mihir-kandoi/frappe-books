@@ -89,7 +89,9 @@ test('a failed Submit retains the draft and panel for correction and retry', asy
     page.getByText('Payment submission rejected', { exact: true })
   ).toBeVisible();
   await page.getByRole('button', { name: 'Okay', exact: true }).click();
-  await page.getByRole('button', { name: 'No', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: 'No', exact: true })
+  ).toHaveCount(0);
 
   await expect(
     page.getByRole('button', { name: 'Close quick edit' })

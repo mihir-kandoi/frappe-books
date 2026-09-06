@@ -702,11 +702,12 @@ async function showSubmitOrSyncDialog(doc: Doc, type: 'submit' | 'sync') {
     detail = getDocSyncMessage(doc);
   }
 
+  let actionError: unknown;
   const yesAction = async () => {
     try {
       await doc[type]();
     } catch (error) {
-      await handleErrorWithDialog(error, doc);
+      actionError = error;
       return false;
     }
 
@@ -732,7 +733,13 @@ async function showSubmitOrSyncDialog(doc: Doc, type: 'submit' | 'sync') {
     buttons,
   };
 
-  return (await showDialog(dialogOptions)) as boolean;
+  const success = (await showDialog(dialogOptions)) as boolean;
+  if (actionError) {
+    // Show the error after the confirmation closes so it cannot offer a stale retry.
+    await handleErrorWithDialog(actionError, doc, false, true);
+  }
+
+  return success;
 }
 
 function getDocSyncMessage(doc: Doc): string {
