@@ -2,8 +2,9 @@
 
 import frappe
 
+from frappe_books.accounting.money import as_decimal
 from frappe_books.coa import ensure_bank_account, ensure_discount_account, ensure_standard_coa
-from frappe_books.currency import currency_precision
+from frappe_books.currency import currency_fraction_values, currency_precision
 from frappe_books.regional import ensure_regional_records
 from frappe_books.setup import ensure_default_records, ensure_number_series, ensure_roles
 
@@ -50,18 +51,17 @@ def ensure_currency(currency):
 		)
 		or {}
 	)
+	fraction_values = currency_fraction_values(currency)
+	minimum = as_decimal(core_currency.get("smallest_currency_fraction_value"))
+	if minimum and minimum > fraction_values["smallest_value"]:
+		fraction_values["smallest_value"] = minimum
 	frappe.get_doc(
 		{
 			"doctype": "Books Currency",
 			"name": currency,
 			"symbol": core_currency.get("symbol") or currency,
 			"fraction": core_currency.get("fraction") or "Cent",
-			"fraction_units": 0 if currency == "JPY" else core_currency.get("fraction_units", 100),
-			"smallest_value": 1
-			if currency == "JPY"
-			else (
-				core_currency.get("smallest_currency_fraction_value") or 10 ** -currency_precision(currency)
-			),
+			**fraction_values,
 		}
 	).insert(ignore_permissions=True)
 
