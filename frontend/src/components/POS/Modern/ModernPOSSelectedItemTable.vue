@@ -1,9 +1,10 @@
 <template>
-  <div class="flex min-h-0 flex-1 flex-col">
+  <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-auto">
     <FrappeList
+      v-if="sinvDoc.items?.length"
       :columns="listColumns"
       divider="full"
-      class="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden rounded-4 border border-outline-gray-1 list-gap-2 [--list-row-padding-x:0px]"
+      class="mt-2 flex min-h-0 min-w-[23rem] flex-1 flex-col overflow-hidden rounded-4 border border-outline-gray-1 list-gap-1 [--list-row-padding-x:0px]"
     >
       <FrappeListHeader>
         <FrappeListHeaderCell
@@ -16,7 +17,9 @@
         </FrappeListHeaderCell>
       </FrappeListHeader>
 
-      <div class="custom-scroll custom-scroll-thumb1 min-h-0 flex-1 overflow-auto">
+      <div
+        class="custom-scroll custom-scroll-thumb1 min-h-0 flex-1 overflow-auto"
+      >
         <FrappeListRows :items="sinvDoc.items ?? []" :row-key="getRowKey">
           <template #default="{ item: row, value }">
             <FrappeListRow
@@ -24,7 +27,7 @@
               class="min-h-12 py-2 hover:bg-surface-gray-1"
             >
               <ModernPOSSelectedItemRow
-                :row="(row as SalesInvoiceItem)"
+                :row="row as SalesInvoiceItem"
                 :expanded-batch-id="expandedBatchId"
                 @set-expanded-batch-id="
                   (rowName) => $emit('setExpandedBatchId', rowName)
@@ -39,6 +42,21 @@
         </FrappeListRows>
       </div>
     </FrappeList>
+    <div
+      v-else
+      class="flex min-h-32 flex-1 flex-col items-center justify-center gap-2 p-6 text-center"
+    >
+      <span
+        class="lucide-shopping-cart mb-1 size-7 text-ink-gray-5"
+        aria-hidden="true"
+      />
+      <p class="text-base font-medium text-ink-gray-8">
+        {{ t`No items in this sale` }}
+      </p>
+      <p class="text-sm text-ink-gray-6">
+        {{ t`Search or scan an item to get started.` }}
+      </p>
+    </div>
   </div>
 </template>
 
@@ -94,11 +112,15 @@ export default defineComponent({
     'setExpandedBatchId',
   ],
   computed: {
-    ratio() {
-      return [0.25, 1, 0.65, 0.8, 0.8, 0.3];
-    },
     listColumns(): string[] {
-      return this.ratio.map((ratio) => `minmax(0, ${ratio}fr)`);
+      return [
+        '1.75rem',
+        'minmax(5rem, 1fr)',
+        '3.5rem',
+        'minmax(4.5rem, 0.8fr)',
+        'minmax(5rem, 0.8fr)',
+        '1.75rem',
+      ];
     },
     tableFields() {
       return [

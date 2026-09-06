@@ -18,3 +18,11 @@ They do not need a Books site or a separate build:
 ```sh
 yarn test:ui tests/ui/report-table.spec.ts
 ```
+
+The POS layout tests use the real components and models with in-memory records.
+They cover both layouts, every POS dialog, small windows, invoice selection, and keypad validation.
+They do not need a running Books site:
+
+```sh
+yarn test:ui tests/ui/pos-layout.spec.ts
+```

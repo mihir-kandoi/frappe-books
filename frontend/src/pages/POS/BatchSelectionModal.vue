@@ -1,15 +1,13 @@
 <template>
   <Modal
     :open-modal="openModal"
-    size="sm"
-    class="h-auto w-full"
+    :title="t`Select Batch`"
     @closemodal="closeModal"
   >
-    <p class="text-center font-semibold py-3 text-ink-gray-8">
-      {{ t`Select the Batch` }}
-    </p>
-
-    <div class="px-10 pt-6">
+    <div class="flex flex-col gap-4">
+      <p class="break-words text-sm text-ink-gray-6">
+        {{ itemCode }}
+      </p>
       <Link
         :df="{
           fieldname: 'batch',
@@ -25,30 +23,20 @@
         :show-label="true"
         @change="(value: string) => (selectedBatch = value)"
       />
-
-      <div class="mt-8 mb-6 grid grid-cols-2 gap-4">
-        <Button
-          size="lg"
-          theme="green"
-          type="primary"
-          class="w-full"
-          :disabled="!selectedBatch"
-          @click="submitSelection"
-        >
-          <span>{{ t`Select` }}</span>
-        </Button>
-
-        <Button
-          size="lg"
-          theme="red"
-          type="primary"
-          class="w-full"
-          @click="closeModal"
-        >
-          <span>{{ t`Cancel` }}</span>
-        </Button>
-      </div>
     </div>
+    <template #actions>
+      <Button size="lg" class="min-w-24" @click="closeModal">{{
+        t`Cancel`
+      }}</Button>
+      <Button
+        size="lg"
+        class="min-w-24"
+        type="primary"
+        :disabled="!selectedBatch"
+        @click="submitSelection"
+        >{{ t`Select` }}</Button
+      >
+    </template>
   </Modal>
 </template>
 
@@ -56,7 +44,7 @@
 import { defineComponent } from 'vue';
 import { t } from 'fyo';
 import { showToast } from 'src/utils/interactive';
-import Modal from 'src/components/Modal.vue';
+import Modal from 'src/components/POS/POSDialog.vue';
 import Button from 'src/components/Button.vue';
 import Link from 'src/components/Controls/Link.vue';
 import { ModelNameEnum } from 'models/types';

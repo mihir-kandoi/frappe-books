@@ -1,64 +1,38 @@
 <template>
   <Modal
     :open-modal="openModal"
-    size="md"
-    class="h-auto w-full px-6 select-none"
+    :title="t`Leave this sale?`"
+    size="lg"
     @closemodal="$emit('toggleModal', 'Alert')"
   >
-    <p class="text-center font-semibold py-3">{{ t`Alert` }}</p>
-    <hr class="border-outline-gray-1" />
-    <p class="py-6">
-      {{ t`Clicking continue will remove all the selected items.` }}
+    <p class="text-base leading-6 text-ink-gray-7">
+      {{
+        t`Save this sale to resume it later, or discard the selected items and continue to the invoice list.`
+      }}
     </p>
-
-    <div class="row-start-6 grid grid-cols-2 gap-4 mt-auto pb-6">
-      <div class="flex col-span-2 gap-5">
-        <Button
-          size="lg"
-          theme="red"
-          type="primary"
-          class="w-full"
-          @click="$emit('toggleModal', 'Alert')"
-        >
-          <slot>
-            <span>{{ t`Cancel` }}</span>
-          </slot>
-        </Button>
-
-        <Button
-          size="lg"
-          theme="green"
-          type="primary"
-          class="w-full"
-          @click="
-            routeTo('/list/SalesInvoice');
-            $emit('toggleModal', 'Alert');
-          "
-        >
-          <slot>
-            <span>{{ t`Continue` }}</span>
-          </slot>
-        </Button>
-      </div>
-      <div class="col-span-2 flex justify-center mt-3">
-        <Button
-          size="lg"
-          class="w-full"
-          type="primary"
-          @click="$emit('saveAndContinue')"
-        >
-          <slot>
-            <span>{{ t`Save and Continue` }}</span>
-          </slot>
-        </Button>
-      </div>
-    </div>
+    <template #actions>
+      <Button size="lg" @click="$emit('toggleModal', 'Alert')">{{
+        t`Cancel`
+      }}</Button>
+      <Button
+        size="lg"
+        theme="red"
+        @click="
+          routeTo('/list/SalesInvoice');
+          $emit('toggleModal', 'Alert');
+        "
+        >{{ t`Discard and Continue` }}</Button
+      >
+      <Button size="lg" type="primary" @click="$emit('saveAndContinue')">{{
+        t`Save and Continue`
+      }}</Button>
+    </template>
   </Modal>
 </template>
 
 <script lang="ts">
 import Button from 'src/components/Button.vue';
-import Modal from 'src/components/Modal.vue';
+import Modal from 'src/components/POS/POSDialog.vue';
 import { defineComponent } from 'vue';
 import { routeTo } from 'src/utils/ui';
 

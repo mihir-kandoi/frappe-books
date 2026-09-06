@@ -1,71 +1,50 @@
 <template>
   <Modal
     :open-modal="openModal"
-    size="sm"
-    class="h-96 w-full"
+    :title="t`Redeem Loyalty Points`"
     @closemodal="cancelLoyaltyProgram"
   >
-    <p class="text-center py-4 text-ink-gray-8">Redeem Loyalty Points</p>
-
-    <hr class="border-outline-gray-1" />
-
-    <div class="flex gap-2 p-3 justify-end pt-10">
-      <Icon name="coins" class="size-5 text-ink-amber-5" />
-
-      <p class="text-ink-gray-8 pr-6">
-        {{ loyaltyPoints }} - ({{ loyaltyProgram }})
-      </p>
-    </div>
-
-    <Int
-      v-if="sinvDoc.fieldMap"
-      class="flex-shrink-0 px-10 pb-10"
-      :show-label="true"
-      :border="true"
-      :focus-input="true"
-      :value="pendingLoyaltyPoints"
-      :df="sinvDoc.fieldMap.loyaltyPoints"
-      @keydown.enter="saveLoyaltyPoints"
-      @change="setPendingLoyaltyPoints"
-    />
-
-    <div class="row-start-6 grid grid-cols-2 gap-4 mt-auto mb-2 px-10">
-      <div class="col-span-2">
-        <Button
-          size="lg"
-          theme="green"
-          type="primary"
-          class="w-full"
-          @click="saveLoyaltyPoints"
-        >
-          <slot>
-            <span>{{ t`Save` }}</span>
-          </slot>
-        </Button>
+    <div class="flex flex-col gap-5">
+      <div class="flex items-start gap-3">
+        <Icon name="coins" class="mt-1 size-5 shrink-0 text-ink-gray-6" />
+        <div class="min-w-0">
+          <p class="text-base font-medium text-ink-gray-9">
+            {{ t`${loyaltyPoints} points available` }}
+          </p>
+          <p class="break-words text-sm text-ink-gray-6">
+            {{ loyaltyProgram }}
+          </p>
+        </div>
       </div>
+      <Int
+        v-if="sinvDoc.fieldMap"
+        :show-label="true"
+        :border="true"
+        :focus-input="true"
+        :value="pendingLoyaltyPoints"
+        :df="sinvDoc.fieldMap.loyaltyPoints"
+        @keydown.enter="saveLoyaltyPoints"
+        @change="setPendingLoyaltyPoints"
+      />
     </div>
-
-    <div class="row-start-6 grid grid-cols-2 gap-4 mt-auto px-10">
-      <div class="col-span-2">
-        <Button
-          size="lg"
-          theme="red"
-          type="primary"
-          class="w-full"
-          @click="cancelLoyaltyProgram"
-        >
-          <slot>
-            <span>{{ t`Cancel` }}</span>
-          </slot>
-        </Button>
-      </div>
-    </div>
+    <template #actions>
+      <Button size="lg" class="min-w-24" @click="cancelLoyaltyProgram">{{
+        t`Cancel`
+      }}</Button>
+      <Button
+        size="lg"
+        class="min-w-24"
+        type="primary"
+        @click="saveLoyaltyPoints"
+        >{{ t`Save` }}</Button
+      >
+    </template>
   </Modal>
 </template>
 
 <script lang="ts">
 import Button from 'src/components/Button.vue';
-import Modal from 'src/components/Modal.vue';
+import Modal from 'src/components/POS/POSDialog.vue';
 import { SalesInvoice } from 'models/baseModels/SalesInvoice/SalesInvoice';
 import { defineComponent, inject } from 'vue';
 import { t } from 'fyo';

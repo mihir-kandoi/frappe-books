@@ -1,123 +1,104 @@
 <template>
-  <FrappeButton
-    :icon="isExapanded ? 'lucide-chevron-up' : 'lucide-chevron-down'"
-    variant="ghost"
-    size="xs"
-    :tooltip="isExapanded ? t`Collapse item` : t`Expand item`"
-    :aria-label="isExapanded ? t`Collapse item` : t`Expand item`"
-    @click="toggleExpand"
-  />
-
-  <div class="relative" @click="toggleExpandAndEmit">
-    <Link
-      class="pt-2"
-      :df="{
-        fieldname: 'item',
-        fieldtype: 'Data',
-        label: 'item',
-      }"
-      size="small"
-      :border="false"
-      :value="row.item"
-      :read-only="true"
-    />
-    <p
-      v-if="row.isFreeItem"
-      class="absolute flex top-0 font-medium text-xs ml-2 text-ink-green-3"
-    >
-      {{ row.pricingRule }}
-    </p>
-  </div>
-
-  <div class="flex items-center">
-    <Float
-      :df="{
-        fieldname: 'transferQuantity',
-        fieldtype: 'Float',
-        label: 'Quantity',
-      }"
-      size="small"
-      :border="false"
-      :value="getDisplayTransferQuantity()"
-      :read-only="true"
-    />
-    <div class="flex flex-col ml-1">
+  <FrappeListCell class="min-h-12"
+    ><div class="w-full flex justify-center">
       <FrappeButton
-        icon="lucide-chevron-up"
+        :icon="isExapanded ? 'lucide-chevron-up' : 'lucide-chevron-down'"
         variant="ghost"
         size="xs"
-        class="!size-4"
-        :tooltip="t`Increase quantity`"
-        :aria-label="t`Increase quantity`"
-        @click="adjustQuantity(1)"
-      />
+        :tooltip="isExapanded ? t`Collapse item` : t`Expand item`"
+        :aria-label="isExapanded ? t`Collapse item` : t`Expand item`"
+        :aria-expanded="isExapanded"
+        @click="toggleExpand"
+      /></div
+  ></FrappeListCell>
+  <FrappeListCell class="min-h-12"
+    ><div class="w-full min-w-0 px-2">
       <FrappeButton
-        icon="lucide-chevron-down"
+        variant="ghost"
+        class="!h-auto !w-full !justify-start !px-0 text-start [&>span]:min-w-0"
+        :tooltip="row.item"
+        @click="toggleExpandAndEmit"
+      >
+        <span class="truncate text-sm text-ink-gray-9">{{
+          row.item
+        }}</span>
+      </FrappeButton>
+      <p
+        v-if="row.isFreeItem"
+        class="truncate text-xs text-ink-green-7"
+        :title="String(row.pricingRule ?? '')"
+      >
+        {{ row.pricingRule }}
+      </p>
+    </div></FrappeListCell
+  >
+  <FrappeListCell class="min-h-12"
+    ><div class="w-full flex min-w-0 items-center justify-end gap-1">
+      <span
+        class="min-w-0 truncate px-2 text-end text-sm tabular-nums text-ink-gray-9"
+        :title="fyo.format(getDisplayTransferQuantity(), 'Float')"
+        >{{ fyo.format(getDisplayTransferQuantity(), 'Float') }}</span
+      >
+      <div class="flex shrink-0 flex-col">
+        <FrappeButton
+          icon="lucide-chevron-up"
+          variant="ghost"
+          size="xs"
+          class="!h-5 !w-6"
+          :tooltip="t`Increase quantity`"
+          :aria-label="t`Increase quantity`"
+          @click="adjustQuantity(1)"
+        />
+        <FrappeButton
+          icon="lucide-chevron-down"
+          variant="ghost"
+          size="xs"
+          class="!h-5 !w-6"
+          :tooltip="t`Decrease quantity`"
+          :aria-label="t`Decrease quantity`"
+          @click="adjustQuantity(-1)"
+        />
+      </div></div
+  ></FrappeListCell>
+  <FrappeListCell class="min-h-12"
+    ><span
+      class="w-full min-w-0 truncate px-2 text-sm text-ink-gray-9"
+      :title="row.transferUnit || row.unit"
+      >{{ row.transferUnit || row.unit }}</span
+    ></FrappeListCell
+  >
+  <FrappeListCell class="min-h-12"
+    ><span
+      class="w-full min-w-0 truncate px-2 text-end text-sm tabular-nums text-ink-gray-9"
+      :title="fyo.format(row.rate, 'Currency')"
+      >{{ fyo.format(row.rate, 'Currency') }}</span
+    ></FrappeListCell
+  >
+  <FrappeListCell class="min-h-12"
+    ><span
+      class="w-full min-w-0 truncate px-2 text-end text-sm tabular-nums text-ink-gray-9"
+      :title="fyo.format(row.amount, 'Currency')"
+      >{{ fyo.format(row.amount, 'Currency') }}</span
+    ></FrappeListCell
+  >
+  <FrappeListCell class="min-h-12"
+    ><div class="w-full flex justify-center">
+      <FrappeButton
+        icon="lucide-trash-2"
+        theme="red"
         variant="ghost"
         size="xs"
-        class="!size-4"
-        :tooltip="t`Decrease quantity`"
-        :aria-label="t`Decrease quantity`"
-        @click="adjustQuantity(-1)"
-      />
-    </div>
-  </div>
-
-  <Link
-    class="ml-5"
-    :df="{
-      fieldname: 'transferUnit',
-      fieldtype: 'Data',
-      label: 'Unit',
-    }"
-    size="small"
-    :border="false"
-    :value="row.transferUnit || row.unit"
-    :read-only="true"
-  />
-
-  <Currency
-    :df="{
-      fieldtype: 'Currency',
-      fieldname: 'rate',
-      label: 'rate',
-    }"
-    size="small"
-    :border="false"
-    :value="row.rate"
-    :read-only="true"
-  />
-
-  <Currency
-    :df="{
-      fieldtype: 'Currency',
-      fieldname: 'amount',
-      label: t`Amount`,
-    }"
-    size="small"
-    :border="false"
-    :value="row.amount"
-    :read-only="true"
-  />
-
-  <div class="px-4">
-    <FrappeButton
-      icon="lucide-trash-2"
-      theme="red"
-      variant="ghost"
-      size="xs"
-      :tooltip="t`Remove item`"
-      :aria-label="t`Remove item`"
-      @click.stop="removeAddedItem(row)"
-    />
-  </div>
-
-  <div></div>
-
-  <template v-if="isExapanded">
-    <div class="px-4 pt-6 col-span-1">
+        :tooltip="t`Remove item`"
+        :aria-label="t`Remove item`"
+        @click.stop="removeAddedItem(row)"
+      /></div
+  ></FrappeListCell>
+  <div
+    v-if="isExapanded"
+    class="col-span-full grid grid-cols-2 gap-4 border-t border-outline-gray-1 px-3 py-4"
+  >
+    <div v-if="isUOMConversionEnabled" class="min-w-0">
       <Float
-        v-if="isUOMConversionEnabled"
         :df="{
           fieldtype: 'Float',
           fieldname: 'transferQuantity',
@@ -132,9 +113,11 @@
       />
     </div>
 
-    <div class="px-4 pt-6 col-span-2">
+    <div
+      v-if="isUOMConversionEnabled && transferUnitOptions.length"
+      class="min-w-0"
+    >
       <AutoComplete
-        v-if="isUOMConversionEnabled && transferUnitOptions.length"
         :key="row.item"
         :df="{
           fieldtype: 'AutoComplete',
@@ -151,7 +134,7 @@
       />
     </div>
 
-    <div class="px-4 pt-6 col-span-2">
+    <div class="min-w-0">
       <Float
         :df="{
           fieldname: 'quantity',
@@ -168,10 +151,7 @@
       />
     </div>
 
-    <div></div>
-    <div></div>
-
-    <div class="px-4 pt-6">
+    <div class="min-w-0">
       <Currency
         :df="{
           fieldtype: 'Currency',
@@ -186,27 +166,27 @@
         @change="(value: Money) => setRate((row.rate = value))"
       />
     </div>
-    <div class="px-6 pt-6 col-span-2">
+    <div v-if="isDiscountingEnabled" class="min-w-0">
       <Currency
-        v-if="isDiscountingEnabled"
         :df="{
           fieldtype: 'Currency',
           fieldname: 'discountAmount',
           label: 'Discount Amount',
         }"
-        class="col-span-2"
+        class="min-w-0"
         size="medium"
         :show-label="true"
         :border="true"
         :value="row.itemDiscountAmount"
-        :read-only="isDiscountsReadOnly((row.itemDiscountPercent as number) > 0)"
+        :read-only="
+          isDiscountsReadOnly((row.itemDiscountPercent as number) > 0)
+        "
         @change="(value: number) => setItemDiscount('amount', value)"
       />
     </div>
 
-    <div class="px-4 pt-6 col-span-2">
+    <div v-if="isDiscountingEnabled" class="min-w-0">
       <Float
-        v-if="isDiscountingEnabled"
         :df="{
           fieldtype: 'Float',
           fieldname: 'itemDiscountPercent',
@@ -221,9 +201,10 @@
       />
     </div>
 
-    <div class=""></div>
-
-    <div v-if="row.links?.item && row.links?.item.hasBatch" class="pl-6 px-4 pt-6 col-span-2">
+    <div
+      v-if="row.links?.item && row.links?.item.hasBatch"
+      class="min-w-0"
+    >
       <Link
         :df="{
           fieldname: 'batch',
@@ -240,7 +221,7 @@
       />
     </div>
 
-    <div v-if="showAvlQuantityInBatch" class="px-5 pt-6 col-span-2">
+    <div v-if="showAvlQuantityInBatch" class="min-w-0">
       <Float
         :df="{
           fieldname: 'availableQtyInBatch',
@@ -257,24 +238,29 @@
       />
     </div>
 
-    <div v-if="hasSerialNumber" class="px-6 pt-6 col-span-3">
+    <div v-if="hasSerialNumber" class="col-span-2 min-w-0">
       <Text
         :df="{
           label: t`Serial Number`,
           fieldtype: 'Text',
           fieldname: 'serialNumber',
         }"
-        :value="String(itemSerialNumbers[row.item as string] || row.serialNumber || '')"
+        :value="
+          String(
+            itemSerialNumbers[row.item as string] || row.serialNumber || ''
+          )
+        "
         :show-label="true"
         :border="true"
         :required="hasSerialNumber"
         @change="(value: string) => setSerialNumber(value)"
       />
     </div>
-  </template>
+  </div>
 </template>
 
 <script lang="ts">
+import { ListCell as FrappeListCell } from 'frappe-ui/list';
 import { Button as FrappeButton } from 'frappe-ui';
 import Currency from 'src/components/Controls/Currency.vue';
 import Data from 'src/components/Controls/Data.vue';
@@ -299,6 +285,7 @@ import { getPOSPermissionSetting } from 'src/utils/pos';
 export default defineComponent({
   name: 'SelectedItemRow',
   components: {
+    FrappeListCell,
     Currency,
     Data,
     Float,

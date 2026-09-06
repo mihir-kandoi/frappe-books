@@ -1,83 +1,64 @@
 <template>
   <Modal
     :open-modal="openModal && !isDismissed && isValuesSeeded"
-    size="2xl"
-    class="flex w-full !max-h-[calc(100dvh-6rem)] flex-col"
+    :title="t`Open POS Shift`"
+    size="3xl"
     @closemodal="handleDismiss"
   >
-    <h1
-      class="shrink-0 px-6 py-4 text-xl font-semibold text-center text-ink-gray-8"
-    >
-      {{ t`Open POS Shift` }}
-    </h1>
+    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div class="flex min-w-0 flex-col gap-4">
+        <h2 class="text-base font-medium text-ink-gray-8">
+          {{ t`Cash In Denominations` }}
+        </h2>
 
-    <div
-      class="custom-scroll custom-scroll-thumb1 min-h-0 overflow-y-auto px-6 pb-4"
-    >
-      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div class="flex min-w-0 flex-col gap-4">
-          <h2 class="text-lg font-medium text-ink-gray-8">
-            {{ t`Cash In Denominations` }}
-          </h2>
+        <Table
+          v-if="isValuesSeeded"
+          class="text-base"
+          :df="getField('openingCash')"
+          :show-header="true"
+          :border="true"
+          :value="posShiftDoc?.openingCash"
+          @row-change="handleChange"
+        />
+      </div>
 
-          <Table
-            v-if="isValuesSeeded"
-            class="text-base"
-            :df="getField('openingCash')"
-            :show-header="true"
-            :border="true"
-            :value="posShiftDoc?.openingCash"
-            @row-change="handleChange"
-          />
-        </div>
+      <div class="flex min-w-0 flex-col gap-4">
+        <h2 class="text-base font-medium text-ink-gray-8">
+          {{ t`Opening Amount` }}
+        </h2>
 
-        <div class="flex min-w-0 flex-col gap-4">
-          <h2 class="text-lg font-medium text-ink-gray-8">
-            {{ t`Opening Amount` }}
-          </h2>
-
-          <Table
-            v-if="isValuesSeeded"
-            class="text-base"
-            :df="getField('openingAmounts')"
-            :show-header="true"
-            :border="true"
-            :value="posShiftDoc?.openingAmounts"
-            :read-only="false"
-            :allow-add-remove-rows="false"
-            @row-change="handleChange"
-          />
-        </div>
+        <Table
+          v-if="isValuesSeeded"
+          class="text-base"
+          :df="getField('openingAmounts')"
+          :show-header="true"
+          :border="true"
+          :value="posShiftDoc?.openingAmounts"
+          :read-only="false"
+          :allow-add-remove-rows="false"
+          @row-change="handleChange"
+        />
       </div>
     </div>
 
-    <footer
-      class="flex shrink-0 justify-end gap-3 border-t border-outline-gray-1 px-6 py-4"
-    >
-      <Button size="lg" class="w-28" @click="handleDismiss">
-        <slot>
-          <span>{{ t`Back` }}</span>
-        </slot>
-      </Button>
-
+    <template #actions>
+      <Button size="lg" class="min-w-24" @click="handleDismiss">{{
+        t`Back`
+      }}</Button>
       <Button
         size="lg"
-        theme="green"
+        class="min-w-24"
         type="primary"
-        class="w-28"
         @click="handleSubmit"
+        >{{ t`Open Shift` }}</Button
       >
-        <slot>
-          <span>{{ t`Submit` }}</span>
-        </slot>
-      </Button>
-    </footer>
+    </template>
   </Modal>
 </template>
 
 <script lang="ts">
 import Button from 'src/components/Button.vue';
-import Modal from 'src/components/Modal.vue';
+import Modal from 'src/components/POS/POSDialog.vue';
 import Table from 'src/components/Controls/Table.vue';
 import { ModelNameEnum } from 'models/types';
 import { Money } from 'pesa';

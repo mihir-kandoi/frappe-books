@@ -1,0 +1,56 @@
+<template>
+  <section class="flex flex-col gap-4" :aria-label="t`Order totals`">
+    <dl class="flex flex-col gap-2 text-sm">
+      <div class="flex items-baseline justify-between gap-4">
+        <dt class="text-ink-gray-6">{{ t`Total Quantity` }}</dt>
+        <dd class="font-medium tabular-nums text-ink-gray-9">
+          {{ fyo.format(totalQuantity, 'Float') }}
+        </dd>
+      </div>
+      <div
+        v-if="itemDiscounts && !itemDiscounts.isZero()"
+        class="flex items-baseline justify-between gap-4"
+      >
+        <dt class="text-ink-gray-6">{{ t`Item Discounts` }}</dt>
+        <dd class="font-medium tabular-nums text-ink-gray-9">
+          {{ fyo.format(itemDiscounts, 'Currency') }}
+        </dd>
+      </div>
+      <div
+        v-if="additionalDiscounts && !additionalDiscounts.isZero()"
+        class="flex items-baseline justify-between gap-4"
+      >
+        <dt class="text-ink-gray-6">
+          {{ t`Additional Discounts` }}
+        </dt>
+        <dd class="font-medium tabular-nums text-ink-gray-9">
+          {{ fyo.format(additionalDiscounts, 'Currency') }}
+        </dd>
+      </div>
+      <div
+        class="flex flex-wrap items-baseline justify-between gap-2 border-t border-outline-gray-1 pt-3"
+      >
+        <dt class="text-base font-medium text-ink-gray-9">
+          {{ t`Grand Total` }}
+        </dt>
+        <dd class="text-2xl font-semibold tabular-nums text-ink-gray-9">
+          {{ fyo.format(sinvDoc?.grandTotal ?? fyo.pesa(0), 'Currency') }}
+        </dd>
+      </div>
+    </dl>
+  </section>
+</template>
+
+<script setup lang="ts">
+import { t } from 'fyo';
+import { Money } from 'pesa';
+import { SalesInvoice } from 'models/baseModels/SalesInvoice/SalesInvoice';
+import { fyo } from 'src/initFyo';
+
+defineProps<{
+  sinvDoc?: SalesInvoice;
+  totalQuantity?: number;
+  itemDiscounts?: Money;
+  additionalDiscounts?: Money;
+}>();
+</script>

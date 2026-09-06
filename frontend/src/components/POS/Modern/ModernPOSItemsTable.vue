@@ -1,15 +1,15 @@
 <template>
-  <div class="flex min-h-0 flex-1 gap-2">
+  <div ref="container" class="flex min-h-0 flex-1 gap-2 pt-2">
     <div
       v-for="(columnItems, columnIndex) in itemColumns"
       :key="columnIndex"
-      class="min-h-0 w-1/2"
+      class="min-h-0 min-w-0 flex-1"
     >
       <FrappeList
         :columns="listColumns"
         :row-height="48"
         divider="full"
-        class="mt-2 flex h-full min-h-0 flex-col overflow-hidden rounded-4 border border-outline-gray-1 list-gap-2 [--list-row-padding-x:0px]"
+        class="flex h-full min-h-0 flex-col overflow-hidden rounded-4 border border-outline-gray-1 list-gap-2 [--list-row-padding-x:0px]"
       >
         <FrappeListHeader>
           <FrappeListHeaderCell
@@ -37,13 +37,19 @@
                   v-for="df in tableFields"
                   :key="df.fieldname"
                   class="min-w-0 px-3"
-                  :class="isNumeric(df as Field) ? 'justify-end text-end' : ''"
+                  :class="
+                    isNumeric(df as Field) ? 'justify-end text-end' : ''
+                  "
                 >
                   <span
                     class="truncate"
-                    :title="fyo.format(row[df.fieldname as keyof POSItem], df)"
+                    :title="
+                      fyo.format(row[df.fieldname as keyof POSItem], df)
+                    "
                   >
-                    {{ fyo.format(row[df.fieldname as keyof POSItem], df) }}
+                    {{
+                      fyo.format(row[df.fieldname as keyof POSItem], df)
+                    }}
                   </span>
                 </FrappeListCell>
               </FrappeListRow>
@@ -88,6 +94,21 @@ export default defineComponent({
       type: String,
       default: 'Inventory Items',
     },
+  },
+  data() {
+    return {
+      showTwoColumns: false,
+      resizeObserver: undefined as ResizeObserver | undefined,
+    };
+  },
+  mounted() {
+    this.resizeObserver = new ResizeObserver(([entry]) => {
+      this.showTwoColumns = entry.contentRect.width >= 840;
+    });
+    this.resizeObserver.observe(this.$refs.container as HTMLElement);
+  },
+  beforeUnmount() {
+    this.resizeObserver?.disconnect();
   },
   computed: {
     ratio() {
@@ -134,6 +155,7 @@ export default defineComponent({
     },
     itemColumns(): POSItem[][] {
       const items = (this.items ?? []) as POSItem[];
+      if (!this.showTwoColumns || items.length < 2) return [items];
       const midpoint = Math.ceil(items.length / 2);
       return [items.slice(0, midpoint), items.slice(midpoint)];
     },

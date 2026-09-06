@@ -1,20 +1,16 @@
 <template>
   <Modal
     :open-modal="openModal"
+    :title="t`Saved and Submitted Invoices`"
     size="2xl"
-    class="flex h-[calc(100vh-6rem)] max-h-[40rem] w-full flex-col p-5"
+    body-class="flex h-[32rem] flex-col gap-3"
     @closemodal="closeModal"
   >
-    <p class="text-center font-semibold text-ink-gray-5">
-      {{ t`Invoices` }}
-    </p>
-
-    <hr class="mt-2 border-outline-gray-1" />
-
-    <div class="mt-4">
+    <div class="shrink-0">
       <FrappeTextInput
         v-model="invoiceSearchTerm"
         type="text"
+        :aria-label="t`Search by invoice name`"
         :placeholder="t`Search by invoice name`"
         class="w-full"
         variant="outline"
@@ -26,7 +22,7 @@
     <FrappeTabButtons
       :model-value="savedInvoiceList ? 'saved' : 'submitted'"
       :options="invoiceTabs"
-      class="mt-2 w-full"
+      class="w-full shrink-0"
       fluid
       @update:model-value="showSavedInvoices($event === 'saved')"
     />
@@ -39,25 +35,25 @@
       :empty-text="t`No invoices found`"
     />
 
-    <div class="mt-4 grid grid-cols-2 gap-3">
-      <Button class="w-full" @click="closeModal">
-        {{ t`Cancel` }}
-      </Button>
+    <template #actions>
+      <Button size="lg" class="min-w-24" @click="closeModal">{{
+        t`Cancel`
+      }}</Button>
       <Button
-        class="w-full"
+        size="lg"
+        class="min-w-24"
         type="primary"
         :disabled="!selectedInvoiceName"
         @click="openSelectedInvoice"
+        >{{ t`Open Invoice` }}</Button
       >
-        {{ t`Open Invoice` }}
-      </Button>
-    </div>
+    </template>
   </Modal>
 </template>
 
 <script lang="ts">
 import Button from 'src/components/Button.vue';
-import Modal from 'src/components/Modal.vue';
+import Modal from 'src/components/POS/POSDialog.vue';
 import InvoiceSelectionTable from 'src/components/POS/InvoiceSelectionTable.vue';
 import { SalesInvoice } from 'models/baseModels/SalesInvoice/SalesInvoice';
 import { defineComponent } from 'vue';

@@ -1,9 +1,10 @@
 <template>
+  <div class="flex min-h-0 flex-1 overflow-x-auto">
 	<FrappeList
 		:columns="listColumns"
 		:row-height="48"
 		divider="full"
-		class="mt-2 flex min-h-0 flex-1 flex-col overflow-hidden rounded-4 border border-outline-gray-1 list-gap-2 [--list-row-padding-x:0px]"
+		class="flex min-h-0 min-w-[34rem] flex-1 flex-col overflow-hidden rounded-4 border border-outline-gray-1 list-gap-2 [--list-row-padding-x:0px]"
 		:aria-label="t`Invoices`"
 	>
 		<FrappeListHeader>
@@ -61,6 +62,7 @@
 			{{ emptyText }}
 		</div>
 	</FrappeList>
+  </div>
 </template>
 
 <script lang="ts">

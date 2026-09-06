@@ -5,7 +5,12 @@
     <!-- Items Grid -->
     <div
       class="grid w-full gap-3"
-      style="grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr))"
+      style="
+        grid-template-columns: repeat(
+          auto-fill,
+          minmax(min(10rem, 100%), 1fr)
+        );
+      "
     >
       <FrappeButton
         v-for="item in items"
@@ -45,12 +50,7 @@
           </h3>
 
           <p class="mt-auto text-base font-medium text-ink-gray-9">
-            {{
-              item.rate
-                ? fyo.currencySymbols[item.rate.getCurrency()]
-                : undefined
-            }}
-            {{ item.rate }}
+            {{ fyo.format(item.rate, 'Currency') }}
           </p>
         </div>
       </FrappeButton>
@@ -82,7 +82,7 @@ export default defineComponent({
         .map((word) => {
           return word[0].toUpperCase();
         });
-      return initials.join('');
+      return initials.slice(0, 2).join('');
     },
   },
 });

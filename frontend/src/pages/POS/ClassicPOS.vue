@@ -16,7 +16,9 @@
       :loyalty-points="loyaltyPoints"
       :loyalty-program="loyaltyProgram"
       @toggle-modal="emitEvent('toggleModal', 'LoyaltyProgram', false)"
-      @set-loyalty-points="(points) => emitEvent('setLoyaltyPoints', points)"
+      @set-loyalty-points="
+        (points) => emitEvent('setLoyaltyPoints', points)
+      "
     />
 
     <BatchSelectionModal
@@ -55,7 +57,9 @@
     <PaymentModal
       :open-modal="openPaymentModal"
       @toggle-modal="emitEvent('toggleModal', 'Payment', false)"
-      @set-paid-amount="(amount: Money) => emitEvent('setPaidAmount', amount)"
+      @set-paid-amount="
+        (amount: Money) => emitEvent('setPaidAmount', amount)
+      "
       @set-payment-method="
         (paymentMethod) => emitEvent('setPaymentMethod', paymentMethod)
       "
@@ -79,22 +83,22 @@
     <AlertModal
       :open-modal="openAlertModal"
       @toggle-modal="emitEvent('toggleModal', 'Alert', false)"
-      @save-and-continue="(value: any) => emitEvent('saveAndContinue', value)"
+      @save-and-continue="
+        (value: any) => emitEvent('saveAndContinue', value)
+      "
     />
 
     <div
-      class="h-[calc(100vh-var(--h-row-largest))] min-h-0 overflow-y-auto xl:overflow-hidden bg-surface-gray-1 grid grid-cols-1 xl:grid-cols-12 gap-2 p-4"
+      class="h-[calc(100dvh-var(--h-row-largest))] min-h-0 overflow-y-auto xl:overflow-hidden bg-surface-gray-1 grid grid-cols-1 xl:grid-cols-12 gap-2 p-4"
     >
       <div
-        class="relative col-span-1 xl:col-span-5 min-h-[32rem] xl:min-h-0 overflow-hidden bg-surface-base border rounded-4 border-outline-gray-1"
+        class="relative col-span-1 xl:col-span-5 min-w-0 min-h-[28rem] xl:min-h-0 overflow-hidden bg-surface-base border rounded-4 border-outline-gray-1"
       >
-        <div
-          class="flex h-full min-h-0 flex-col rounded-4 p-4 pb-14 col-span-5"
-        >
-          <div class="flex gap-x-2">
+        <div class="flex h-full min-h-0 flex-col rounded-4 p-4 col-span-5">
+          <div class="flex shrink-0 flex-wrap gap-2">
             <!-- Item Search -->
             <MultiLabelLink
-              class="w-full"
+              class="min-w-0 flex-1 basis-48"
               secondary-link="barcode"
               third-link="itemCode"
               :option-records="searchItems"
@@ -108,14 +112,20 @@
               :value="itemSearchTerm"
               :show-clear-button="true"
               :close-on-enter="true"
-              @search="(query: string) => emitEvent('handleItemSearch', query)"
-              @enter="
-                (value: string) => emitEvent('handleItemSearch', value, true)
+              @search="
+                (query: string) => emitEvent('handleItemSearch', query)
               "
-              @change="(item: string) => emitEvent('handleItemSearch', item)"
+              @enter="
+                (value: string) =>
+                  emitEvent('handleItemSearch', value, true)
+              "
+              @change="
+                (item: string) => emitEvent('handleItemSearch', item)
+              "
             />
 
             <Link
+              class="w-40 min-w-0"
               v-if="fyo.singles.AccountingSettings?.enableitemGroup"
               :df="{
                 label: t`Filter by Group`,
@@ -138,7 +148,7 @@
               {{ t`No items found` }}
             </p>
             <p class="text-sm text-ink-gray-5">
-              {{ t`Try another item visibility or filter.` }}
+              {{ t`Try another search or item group.` }}
             </p>
           </div>
 
@@ -156,8 +166,9 @@
             @add-item="(item) => emitEvent('addItem', item)"
           />
 
-          <div class="absolute bottom-4 left-4 flex gap-x-3 p-1">
+          <div class="flex shrink-0 flex-wrap gap-2 pt-3">
             <POSQuickActions
+              :table-view="tableView"
               :sinv-doc="sinvDoc"
               :loyalty-points="loyaltyPoints"
               :loyalty-program="loyaltyProgram"
@@ -165,14 +176,17 @@
               @toggle-view="emitEvent('toggleView')"
               @emit-route-to-sinv-list="emitEvent('routeToSinvList')"
               @toggle-modal="
-                (modalName, value) => emitEvent('toggleModal', modalName, value)
+                (modalName, value) =>
+                  emitEvent('toggleModal', modalName, value)
               "
             />
           </div>
         </div>
       </div>
 
-      <div class="col-span-1 min-h-[40rem] xl:col-span-7 xl:min-h-0">
+      <div
+        class="col-span-1 min-w-0 min-h-[36rem] xl:col-span-7 xl:min-h-0"
+      >
         <div class="flex h-full min-h-0 flex-col gap-3">
           <div
             class="p-4 bg-surface-base border rounded-4 min-h-0 flex-1 flex flex-col border-outline-gray-1"
@@ -202,163 +216,27 @@
           </div>
 
           <div
-            class="p-3 bg-surface-base border rounded-4 border-outline-gray-1"
+            class="grid shrink-0 grid-cols-1 gap-5 rounded-4 border border-outline-gray-1 bg-surface-base p-4 sm:grid-cols-2"
           >
-            <div class="w-full grid grid-cols-2 gap-y-2 gap-x-3">
-              <div class="flex flex-col justify-end">
-                <div class="grid grid-cols-2 gap-2">
-                  <FloatingLabelFloatInput
-                    :df="{
-                      label: t`Total Quantity`,
-                      fieldtype: 'Float',
-                      fieldname: 'totalQuantity',
-                      minvalue: 0,
-                      maxvalue: 1000,
-                    }"
-                    size="large"
-                    :value="totalQuantity"
-                    :read-only="true"
-                    :text-right="true"
-                  />
-
-                  <FloatingLabelCurrencyInput
-                    :df="{
-                      label: t`Add'l Discounts`,
-                      fieldtype: 'Currency',
-                      fieldname: 'additionalDiscount',
-                      minvalue: 0,
-                    }"
-                    size="large"
-                    :value="additionalDiscounts"
-                    :read-only="true"
-                    :text-right="true"
-                    @change="(amount: Money) => (additionalDiscounts = amount)"
-                  />
-                </div>
-
-                <div class="mt-4 grid grid-cols-2 gap-2">
-                  <FloatingLabelCurrencyInput
-                    :df="{
-                      label: t`Item Discounts`,
-                      fieldtype: 'Currency',
-                      fieldname: 'itemDiscounts',
-                    }"
-                    size="large"
-                    :value="itemDiscounts"
-                    :read-only="true"
-                    :text-right="true"
-                  />
-
-                  <FloatingLabelCurrencyInput
-                    v-if="sinvDoc?.fieldMap"
-                    :df="sinvDoc?.fieldMap.grandTotal"
-                    size="large"
-                    :value="sinvDoc?.grandTotal"
-                    :read-only="true"
-                    :text-right="true"
-                  />
-                </div>
-              </div>
-              <div class="w-full">
-                <div class="grid w-full min-w-0 grid-cols-2 gap-2">
-                  <Button
-                    size="lg"
-                    class="w-full min-w-0"
-                    :style="{
-                      backgroundColor:
-                        profile?.saveButtonColour ||
-                        fyo.singles.Defaults?.saveButtonColour,
-                    }"
-                    @click="$emit('saveInvoiceAction')"
-                  >
-                    <slot>
-                      <span>{{ t`Save` }}</span>
-                    </slot>
-                  </Button>
-                  <Button
-                    size="lg"
-                    class="w-full min-w-0"
-                    :style="{
-                      backgroundColor:
-                        profile?.cancelButtonColour ||
-                        fyo.singles.Defaults?.cancelButtonColour,
-                    }"
-                    @click="() => $emit('clearValues')"
-                  >
-                    <slot>
-                      <span>{{ t`Cancel` }}</span>
-                    </slot>
-                  </Button>
-                </div>
-                <div
-                  class="grid w-full min-w-0 grid-cols-2 gap-2"
-                  :class="`${isReturnInvoiceEnabledReturn ? 'mt-2' : 'mt-4'}`"
-                >
-                  <Button
-                    size="lg"
-                    class="w-full min-w-0"
-                    :style="{
-                      backgroundColor:
-                        profile?.heldButtonColour ||
-                        fyo.singles.Defaults?.heldButtonColour,
-                    }"
-                    @click="emitEvent('toggleModal', 'SavedInvoice', true)"
-                  >
-                    <slot>
-                      <span>{{ t`held` }}</span>
-                    </slot>
-                  </Button>
-
-                  <Button
-                    size="lg"
-                    v-if="isReturnInvoiceEnabledReturn"
-                    class="w-full min-w-0"
-                    :style="{
-                      backgroundColor:
-                        profile?.returnButtonColour ||
-                        fyo.singles.Defaults?.returnButtonColour,
-                    }"
-                    @click="
-                      emitEvent('toggleModal', 'ReturnSalesInvoice', true)
-                    "
-                  >
-                    <slot>
-                      <span>{{ t`Return` }}</span>
-                    </slot>
-                  </Button>
-                  <Button
-                    size="lg"
-                    v-else
-                    class="w-full min-w-0"
-                    :style="{
-                      backgroundColor:
-                        profile?.payButtonColour ||
-                        fyo.singles.Defaults?.payButtonColour,
-                    }"
-                    @click="emitEvent('handlePaymentAction')"
-                  >
-                    <slot>
-                      <span>{{ t`Pay` }}</span>
-                    </slot>
-                  </Button>
-                </div>
-                <Button
-                  size="lg"
-                  v-if="isReturnInvoiceEnabledReturn"
-                  class="w-full mt-2"
-                  :style="{
-                    backgroundColor:
-                      profile?.payButtonColour ||
-                      fyo.singles.Defaults?.payButtonColour,
-                  }"
-                  @click="emitEvent('handlePaymentAction')"
-                >
-                  <slot>
-                    <span>{{ t`Pay` }}</span>
-                  </slot>
-                </Button>
-              </div>
-            </div>
+            <POSOrderSummary
+              :sinv-doc="sinvDoc"
+              :total-quantity="totalQuantity"
+              :item-discounts="itemDiscounts"
+              :additional-discounts="additionalDiscounts as Money"
+            />
+            <POSInvoiceActions
+              :profile="profile"
+              :enable-returns="!!isReturnInvoiceEnabledReturn"
+              :disable-pay="disablePayButton"
+              :is-return="!!sinvDoc?.isReturn"
+              @save="$emit('saveInvoiceAction')"
+              @clear="$emit('clearValues')"
+              @held="emitEvent('toggleModal', 'SavedInvoice', true)"
+              @return="
+                emitEvent('toggleModal', 'ReturnSalesInvoice', true)
+              "
+              @pay="emitEvent('handlePaymentAction')"
+            />
           </div>
         </div>
       </div>
@@ -367,6 +245,8 @@
 </template>
 
 <script lang="ts">
+import POSOrderSummary from 'src/components/POS/POSOrderSummary.vue';
+import POSInvoiceActions from 'src/components/POS/POSInvoiceActions.vue';
 import { Money } from 'pesa';
 import { fyo } from 'src/initFyo';
 import { getItem } from 'src/utils/pos';
@@ -393,14 +273,14 @@ import { POSProfile } from 'models/baseModels/POSProfile/PosProfile';
 import MultiLabelLink from 'src/components/Controls/MultiLabelLink.vue';
 import { SalesInvoice } from 'models/baseModels/SalesInvoice/SalesInvoice';
 import SelectedItemTable from 'src/components/POS/Classic/SelectedItemTable.vue';
-import FloatingLabelFloatInput from 'src/components/POS/FloatingLabelFloatInput.vue';
-import FloatingLabelCurrencyInput from 'src/components/POS/FloatingLabelCurrencyInput.vue';
 import { AppliedCouponCodes } from 'models/baseModels/AppliedCouponCodes/AppliedCouponCodes';
 import BatchSelectionModal from 'src/pages/POS/BatchSelectionModal.vue';
 
 export default defineComponent({
   name: 'ClassicPOS',
   components: {
+    POSOrderSummary,
+    POSInvoiceActions,
     Link,
     Button,
     ItemsGrid,
@@ -417,9 +297,7 @@ export default defineComponent({
     SavedInvoiceModal,
     ClosePOSShiftModal,
     LoyaltyProgramModal,
-    FloatingLabelFloatInput,
     ReturnSalesInvoiceModal,
-    FloatingLabelCurrencyInput,
     BatchSelectionModal,
   },
   props: {

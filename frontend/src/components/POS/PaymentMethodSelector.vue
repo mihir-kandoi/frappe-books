@@ -5,7 +5,8 @@
 			<FrappeButton
 				v-for="method in methods"
 				:key="method"
-				class="w-full"
+				class="min-w-0 w-full"
+				:tooltip="method"
 				:aria-pressed="method === selected"
 				theme="gray"
 				:variant="method === selected ? 'solid' : 'subtle'"

@@ -1,24 +1,23 @@
 <template>
-  <FrappeDialog
-    :open="openModal"
+  <Modal
+    :open-modal="openModal"
     :title="paymentTitle"
     size="2xl"
-    :dismissible="true"
-    :show-close-button="true"
-    @close="cancelTransaction"
+    @closemodal="cancelTransaction"
   >
     <div
       v-if="sinvDoc.fieldMap"
-      class="grid gap-6 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]"
+      class="grid items-start gap-6 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]"
     >
       <PaymentSummary
+        class="order-2 md:order-1"
         :sinv-doc="sinvDoc"
         :total-taxed-amount="totalTaxedAmount"
         :item-discounts="itemDiscounts"
         :is-discounting-enabled="isDiscountingEnabled"
       />
 
-      <section class="min-w-0 space-y-5" aria-label="Payment details">
+      <section class="order-1 min-w-0 space-y-5 md:order-2" aria-label="Payment details">
         <Currency
           :df="{
             ...fyo.fieldMap.PaymentFor.amount,
@@ -39,11 +38,8 @@
           @select="setPaymentMethodAndAmount"
         />
 
-        <div class="min-h-15">
-          <div
-            v-if="showReferenceField || showClearanceDate"
-            class="grid gap-4 sm:grid-cols-2"
-          >
+        <div v-if="showReferenceField || showClearanceDate">
+          <div class="grid gap-4 sm:grid-cols-2">
             <Data
               v-if="showReferenceField"
               :df="fyo.fieldMap.Payment.referenceId"
@@ -86,12 +82,20 @@
     </div>
 
     <template #actions>
-      <div class="flex w-full flex-wrap items-center justify-between gap-2">
-        <FrappeButton theme="gray" variant="ghost" @click="cancelTransaction">
+      <div
+        class="flex w-full flex-wrap items-center justify-between gap-2"
+      >
+        <FrappeButton
+          size="lg"
+          theme="gray"
+          variant="ghost"
+          @click="cancelTransaction"
+        >
           {{ t`Cancel` }}
         </FrappeButton>
         <div class="flex flex-wrap items-center justify-end gap-2">
           <FrappeButton
+          size="lg"
             theme="gray"
             variant="subtle"
             @click="submitTransaction"
@@ -99,14 +103,16 @@
             {{ t`Submit only` }}
           </FrappeButton>
           <FrappeButton
+          size="lg"
             theme="gray"
             variant="subtle"
             :disabled="isPayDisabled"
             @click="payAndPrintTransaction"
           >
-            {{ t`Pay & print` }}
+            {{ sinvDoc.isReturn ? t`Refund & print` : t`Pay & print` }}
           </FrappeButton>
           <FrappeButton
+          size="lg"
             theme="gray"
             variant="solid"
             :disabled="isPayDisabled"
@@ -117,10 +123,11 @@
         </div>
       </div>
     </template>
-  </FrappeDialog>
+  </Modal>
 </template>
 
 <script lang="ts">
+import Modal from 'src/components/POS/POSDialog.vue';
 import { SalesInvoice } from 'models/baseModels/SalesInvoice/SalesInvoice';
 import {
   getPaymentMethodRequirements,
@@ -135,7 +142,7 @@ import PaymentMethodSelector from 'src/components/POS/PaymentMethodSelector.vue'
 import PaymentSummary from 'src/components/POS/PaymentSummary.vue';
 import { fyo } from 'src/initFyo';
 import { showToast } from 'src/utils/interactive';
-import { Button as FrappeButton, Dialog as FrappeDialog } from 'frappe-ui';
+import { Button as FrappeButton } from 'frappe-ui';
 import { defineComponent, inject } from 'vue';
 
 type PaymentMethodOption = {
@@ -151,7 +158,7 @@ export default defineComponent({
     Data,
     DateControl,
     FrappeButton,
-    FrappeDialog,
+    Modal,
     PaymentMethodSelector,
     PaymentSummary,
   },

@@ -1,77 +1,49 @@
 <template>
   <Modal
     :open-modal="openModal"
-    size="sm"
-    class="h-auto w-full"
+    :title="t`Apply Price List`"
     @closemodal="cancelPriceList"
   >
-    <p class="text-center font-semibold py-3">{{ t`Apply Price List` }}</p>
-    <div class="px-10">
-      <hr class="border-outline-gray-1" />
-      <div class="flex justify-center pt-10">
-        <div class="flex justify-between w-full mb-20">
-          <div class="w-full">
-            <Link
-              v-if="sinvDoc.fieldMap"
-              class="flex-shrink-0 w-full"
-              :border="true"
-              :value="selectedPriceList"
-              :focus-input="true"
-              :df="sinvDoc.fieldMap.priceList"
-              @change="(value) => (selectedPriceList = value ?? '')"
-            />
-          </div>
-          <div class="w-10 flex justify-end items-center">
-            <FrappeButton
-              icon="lucide-trash-2"
-              theme="red"
-              variant="ghost"
-              :tooltip="t`Remove price list`"
-              :aria-label="t`Remove price list`"
-              @click="removePriceList"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div class="row-start-6 grid grid-cols-2 gap-4 mt-auto mb-2">
-        <div class="col-span-2">
-          <Button
-            size="lg"
-            theme="green"
-            type="primary"
-            class="w-full"
-            @click="setPriceList"
-          >
-            <slot>
-              <span>{{ t`Save` }}</span>
-            </slot>
-          </Button>
-        </div>
-      </div>
-
-      <div class="row-start-6 grid grid-cols-2 gap-4 mt-auto mb-8">
-        <div class="col-span-2">
-          <Button
-            size="lg"
-            theme="red"
-            type="primary"
-            class="w-full"
-            @click="cancelPriceList"
-          >
-            <slot>
-              <span>{{ t`Cancel` }}</span>
-            </slot>
-          </Button>
-        </div>
-      </div>
+    <div class="flex items-end gap-3">
+      <Link
+        v-if="sinvDoc.fieldMap"
+        class="min-w-0 flex-1"
+        :border="true"
+        :show-label="true"
+        :value="selectedPriceList"
+        :focus-input="true"
+        :df="sinvDoc.fieldMap.priceList"
+        @change="(value) => (selectedPriceList = value ?? '')"
+      />
+      <FrappeButton
+        v-if="selectedPriceList"
+        icon="lucide-trash-2"
+        theme="red"
+        variant="ghost"
+        class="shrink-0"
+        :tooltip="t`Remove price list`"
+        :aria-label="t`Remove price list`"
+        @click="removePriceList"
+      />
     </div>
+    <template #actions>
+      <Button size="lg" class="min-w-24" @click="cancelPriceList">{{
+        t`Cancel`
+      }}</Button>
+      <Button
+        size="lg"
+        class="min-w-24"
+        type="primary"
+        @click="setPriceList"
+        >{{ t`Save` }}</Button
+      >
+    </template>
   </Modal>
 </template>
 
 <script lang="ts">
 import { t } from 'fyo';
-import Modal from 'src/components/Modal.vue';
+import Modal from 'src/components/POS/POSDialog.vue';
 import { defineComponent, inject } from 'vue';
 import Button from 'src/components/Button.vue';
 import { showToast } from 'src/utils/interactive';

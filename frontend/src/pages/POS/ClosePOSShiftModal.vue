@@ -1,15 +1,11 @@
 <template>
   <Modal
     :open-modal="openModal && isValuesSeeded"
+    :title="t`Close POS Shift`"
     size="4xl"
-    class="w-full p-4"
     @closemodal="$emit('toggleModal', 'ShiftClose', false)"
   >
-    <h1 class="text-xl font-semibold text-center text-ink-gray-8 pb-4">
-      {{ t`Close POS Shift` }}
-    </h1>
-
-    <h2 class="mt-4 mb-2 text-lg font-medium text-ink-gray-8">
+    <h2 class="mb-3 text-base font-medium text-ink-gray-8">
       {{ t`Closing Cash` }}
     </h2>
     <Table
@@ -23,8 +19,8 @@
       @row-change="updateClosingAmounts"
     />
 
-    <h2 class="mt-6 mb-2 text-lg text-ink-gray-8 font-medium">
-      Closing Amounts
+    <h2 class="mt-6 mb-3 text-base text-ink-gray-8 font-medium">
+      {{ t`Closing Amounts` }}
     </h2>
     <Table
       v-if="isValuesSeeded"
@@ -38,37 +34,27 @@
       @row-change="updateClosingAmounts"
     />
 
-    <div class="mt-4 grid grid-cols-2 gap-4 items-end">
+    <template #actions>
       <Button
         size="lg"
-        theme="red"
-        type="primary"
-        class="w-full"
+        class="min-w-24"
         @click="$emit('toggleModal', 'ShiftClose', false)"
+        >{{ t`Cancel` }}</Button
       >
-        <slot>
-          <span>{{ t`Cancel` }}</span>
-        </slot>
-      </Button>
-
       <Button
         size="lg"
-        theme="green"
+        class="min-w-24"
         type="primary"
-        class="w-full"
         @click="handleSubmit"
+        >{{ t`Close Shift` }}</Button
       >
-        <slot>
-          <span>{{ t`Submit` }}</span>
-        </slot>
-      </Button>
-    </div>
+    </template>
   </Modal>
 </template>
 
 <script lang="ts">
 import Button from 'src/components/Button.vue';
-import Modal from 'src/components/Modal.vue';
+import Modal from 'src/components/POS/POSDialog.vue';
 import Table from 'src/components/Controls/Table.vue';
 import { ModelNameEnum } from 'models/types';
 import { Money } from 'pesa';

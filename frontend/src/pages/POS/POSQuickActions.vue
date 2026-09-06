@@ -74,6 +74,7 @@ export default defineComponent({
   name: 'POSQuickActions',
   components: { FrappeBadge, FrappeButton },
   props: {
+    tableView: Boolean,
     openAlertModal: Boolean,
     loyaltyPoints: {
       type: Number,
@@ -95,7 +96,6 @@ export default defineComponent({
   emits: ['toggleView', 'toggleModal', 'emitRouteToSinvList'],
   data() {
     return {
-      tableView: true,
       totalQuantity: 0,
       totalTaxedAmount: fyo.pesa(0),
       additionalDiscounts: fyo.pesa(0),
@@ -113,7 +113,6 @@ export default defineComponent({
       this.transferRefNo = ref;
     },
     toggleItemsView() {
-      this.tableView = !this.tableView;
       this.$emit('toggleView');
     },
     showValidationToast(action: string, isLoyalty = false) {

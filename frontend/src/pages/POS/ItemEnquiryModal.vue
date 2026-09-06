@@ -1,116 +1,92 @@
 <template>
   <Modal
     :open-modal="openModal"
-    size="sm"
-    class="h-auto w-full"
+    :title="t`Item Enquiry`"
+    size="md"
     @closemodal="closeModal"
   >
-    <p class="text-center font-semibold py-3">{{ t`Item Enquiry` }}</p>
-    <div class="px-10">
-      <hr class="border-outline-gray-1" />
-      <div class="flex flex-col gap-5 pt-8">
-        <Link
-          :df="{
-            fieldname: 'item',
-            fieldtype: 'Link',
-            target: 'Item',
-            label: t`Item`,
-            required: true,
-          }"
-          :value="ItemEnquiry.item"
-          :border="true"
-          :show-label="true"
-          @change="(value: string) => (ItemEnquiry.item = value)"
-        />
+    <div class="flex flex-col gap-4">
+      <Link
+        :df="{
+          fieldname: 'item',
+          fieldtype: 'Link',
+          target: 'Item',
+          label: t`Item`,
+          required: true,
+        }"
+        :value="ItemEnquiry.item"
+        :border="true"
+        :show-label="true"
+        @change="(value: string) => (ItemEnquiry.item = value)"
+      />
 
-        <Text
-          :df="{
-            fieldname: 'description',
-            fieldtype: 'Text',
-            label: t`Description`,
-          }"
-          :value="ItemEnquiry.description"
-          :border="true"
-          :show-label="true"
-          @change="(value: string) => (ItemEnquiry.description = value)"
-        />
+      <Text
+        :df="{
+          fieldname: 'description',
+          fieldtype: 'Text',
+          label: t`Description`,
+        }"
+        :value="ItemEnquiry.description"
+        :border="true"
+        :show-label="true"
+        @change="(value: string) => (ItemEnquiry.description = value)"
+      />
 
-        <Link
-          :df="{
-            fieldname: 'customer',
-            fieldtype: 'Link',
-            target: 'Party',
-            label: t`Customer`,
-          }"
-          :value="ItemEnquiry.customer"
-          :border="true"
-          :show-label="true"
-          @change="
-            (value: string) => {
-              ItemEnquiry.customer = value;
-              updateCustomerContact(value);
-            }
-          "
-        />
+      <Link
+        :df="{
+          fieldname: 'customer',
+          fieldtype: 'Link',
+          target: 'Party',
+          label: t`Customer`,
+        }"
+        :value="ItemEnquiry.customer"
+        :border="true"
+        :show-label="true"
+        @change="
+          (value: string) => {
+            ItemEnquiry.customer = value;
+            updateCustomerContact(value);
+          }
+        "
+      />
 
-        <Data
-          :df="{
-            fieldname: 'contact',
-            fieldtype: 'Data',
-            label: t`Contact`,
-          }"
-          :value="ItemEnquiry.contact"
-          :border="true"
-          :show-label="true"
-          @change="(value: string) => (ItemEnquiry.contact = value)"
-        />
+      <Data
+        :df="{
+          fieldname: 'contact',
+          fieldtype: 'Data',
+          label: t`Contact`,
+        }"
+        :value="ItemEnquiry.contact"
+        :border="true"
+        :show-label="true"
+        @change="(value: string) => (ItemEnquiry.contact = value)"
+      />
 
-        <Link
-          :df="{
-            fieldname: 'similarProduct',
-            fieldtype: 'Link',
-            target: 'Item',
-            label: t`Similar Product`,
-          }"
-          :value="ItemEnquiry.similarProduct"
-          :border="true"
-          :show-label="true"
-          @change="(value: string) => (ItemEnquiry.similarProduct = value)"
-        />
-      </div>
-
-      <div class="grid grid-cols-2 gap-4 mt-10 mb-4">
-        <div class="col-span-2">
-          <Button
-            size="lg"
-            theme="green"
-            type="primary"
-            class="w-full"
-            @click="submitForm"
-          >
-            <slot>
-              <span>{{ t`Submit` }}</span>
-            </slot>
-          </Button>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-2 gap-4 mb-6">
-        <div class="col-span-2">
-          <Button
-            size="lg"
-            theme="red"
-            type="primary"
-            class="w-full"
-            @click="closeModal"
-          >
-            <slot>
-              <span>{{ t`Cancel` }}</span>
-            </slot>
-          </Button>
-        </div>
-      </div>
+      <Link
+        :df="{
+          fieldname: 'similarProduct',
+          fieldtype: 'Link',
+          target: 'Item',
+          label: t`Similar Product`,
+        }"
+        :value="ItemEnquiry.similarProduct"
+        :border="true"
+        :show-label="true"
+        @change="(value: string) => (ItemEnquiry.similarProduct = value)"
+      />
     </div>
+    <template #actions>
+      <Button size="lg" class="min-w-24" @click="closeModal">{{
+        t`Cancel`
+      }}</Button>
+      <Button
+        size="lg"
+        class="min-w-24"
+        type="primary"
+        @click="submitForm"
+        >{{ t`Submit` }}</Button
+      >
+    </template>
   </Modal>
 </template>
 
@@ -118,7 +94,7 @@
 import { defineComponent } from 'vue';
 import { t } from 'fyo';
 import { showToast } from 'src/utils/interactive';
-import Modal from 'src/components/Modal.vue';
+import Modal from 'src/components/POS/POSDialog.vue';
 import Button from 'src/components/Button.vue';
 import Link from 'src/components/Controls/Link.vue';
 import Text from 'src/components/Controls/Text.vue';

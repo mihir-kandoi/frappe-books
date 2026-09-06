@@ -5,6 +5,7 @@
 			:model-value="modelValue"
 			:label="label"
 			:error="displayError"
+			:disabled="disabled"
 			size="lg"
 			variant="outline"
 			inputmode="decimal"
@@ -16,7 +17,7 @@
 			@update:model-value="handleTextInput"
 		/>
 
-		<div class="grid grid-cols-4 gap-2" role="group" :aria-label="t`Numeric keypad`">
+		<div class="keypad-keys grid grid-cols-4 gap-2" role="group" :aria-label="t`Numeric keypad`">
 			<FrappeButton
 				v-for="key in keyDefinitions"
 				:key="key.value"
@@ -35,7 +36,7 @@
 			</FrappeButton>
 		</div>
 
-		<p class="text-center text-sm text-ink-gray-5">
+		<p class="keypad-hint text-center text-sm text-ink-gray-5">
 			{{ t`Press Enter to save or Escape to cancel.` }}
 		</p>
 	</div>
@@ -171,3 +172,15 @@ export default defineComponent({
 	},
 });
 </script>
+
+<style scoped>
+@media (max-height: 700px) {
+  .keypad-keys :deep(button) {
+    height: 40px !important;
+  }
+
+  .keypad-hint {
+    display: none;
+  }
+}
+</style>

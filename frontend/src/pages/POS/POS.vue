@@ -3,11 +3,9 @@
     <PageHeader :title="t`Point of Sale`">
       <slot>
         <Button
-          theme="red"
-          type="primary"
           @click="toggleModal('ShiftClose')"
         >
-          <span>{{ t`Close POS Shift ` }}</span>
+          <span>{{ t`Close POS Shift` }}</span>
         </Button>
       </slot>
     </PageHeader>

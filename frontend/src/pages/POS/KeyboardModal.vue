@@ -1,54 +1,37 @@
 <template>
   <Modal
     :open-modal="modalStatus"
-    size="sm"
+    :title="modalTitle"
     @closemodal="closeKeyboardModal"
   >
-    <div class="flex max-h-[calc(100vh-2rem)] flex-col">
-      <header class="border-b border-outline-gray-1 px-6 py-4">
-        <h2 class="text-lg font-semibold text-ink-gray-9">
-          {{ modalTitle }}
-        </h2>
-        <p class="pt-1 text-sm text-ink-gray-5">
-          {{ t`Use the keypad or type a value.` }}
-        </p>
-      </header>
+    <NumericKeypad
+      ref="keypad"
+      v-model="selectedValue"
+      :label="fieldLabel"
+      :error="validationError"
+      :disabled="saving"
+      @submit="saveSelectedItem"
+      @cancel="closeKeyboardModal"
+    />
 
-      <div class="overflow-y-auto px-6 py-5">
-        <NumericKeypad
-          ref="keypad"
-          v-model="selectedValue"
-          :label="fieldLabel"
-          :error="validationError"
-          :disabled="saving"
-          @submit="saveSelectedItem"
-          @cancel="closeKeyboardModal"
-        />
-      </div>
-
-      <footer
-        class="grid grid-cols-2 gap-3 border-t border-outline-gray-1 px-6 py-4"
+    <template #actions>
+      <Button
+        size="lg"
+        class="min-w-24"
+        :disabled="saving"
+        @click="closeKeyboardModal"
+        >{{ t`Cancel` }}</Button
       >
-        <Button
-          class="w-full"
-          :disabled="saving"
-          size="lg"
-          @click="closeKeyboardModal"
-        >
-          {{ t`Cancel` }}
-        </Button>
-        <Button
-          class="w-full"
-          type="primary"
-          size="lg"
-          :disabled="saving"
-          :loading="saving"
-          @click="saveSelectedItem"
-        >
-          {{ t`Save` }}
-        </Button>
-      </footer>
-    </div>
+      <Button
+        size="lg"
+        class="min-w-24"
+        type="primary"
+        :disabled="saving"
+        :loading="saving"
+        @click="saveSelectedItem"
+        >{{ t`Save` }}</Button
+      >
+    </template>
   </Modal>
 </template>
 
@@ -61,7 +44,7 @@ import { validateQty } from 'models/helpers';
 import { ModelNameEnum } from 'models/types';
 import { Money } from 'pesa';
 import Button from 'src/components/Button.vue';
-import Modal from 'src/components/Modal.vue';
+import Modal from 'src/components/POS/POSDialog.vue';
 import NumericKeypad from 'src/components/POS/NumericKeypad.vue';
 import { parseNumericDraft } from 'src/components/POS/numericKeypad';
 import { getErrorMessage } from 'src/utils';

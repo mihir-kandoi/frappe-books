@@ -1,244 +1,237 @@
 <template>
-  <div>
-    <FrappeButton
-      :icon="isExapanded ? 'lucide-chevron-up' : 'lucide-chevron-down'"
-      variant="ghost"
-      size="xs"
-      :tooltip="isExapanded ? t`Collapse item` : t`Expand item`"
-      :aria-label="isExapanded ? t`Collapse item` : t`Expand item`"
-      @click="toggleExpand"
-    />
-  </div>
-
-  <div class="relative" @click="toggleExpand">
-    <Link
-      :df="{
-        fieldname: 'item',
-        fieldtype: 'Data',
-        label: t`Item`,
-      }"
-      :class="row.isFreeItem ? 'mt-2' : ''"
-      size="small"
-      :border="false"
-      :value="row.item"
-      :read-only="true"
-    />
-    <p
-      v-if="row.isFreeItem"
-      class="absolute flex top-0 font-medium text-xs ml-2 text-ink-green-3"
-    >
-      {{ row.pricingRule }}
-    </p>
-  </div>
-
-  <Float
-    :df="{
-      fieldname: 'transferQuantity',
-      fieldtype: 'Float',
-      label: t`Quantity`,
-    }"
-    size="small"
-    :border="false"
-    :value="displayQuantity"
-    :read-only="true"
-  />
-
-  <Currency
-    :df="{
-      fieldtype: 'Currency',
-      fieldname: 'rate',
-      label: t`Rate`,
-    }"
-    size="small"
-    :border="false"
-    :value="row.rate"
-    :read-only="true"
-  />
-
-  <Currency
-    :df="{
-      fieldtype: 'Currency',
-      fieldname: 'amount',
-      label: t`Amount`,
-    }"
-    size="small"
-    :border="false"
-    :value="row.amount"
-    :read-only="true"
-  />
-
-  <div class="flex justify-center">
-    <FrappeButton
-      icon="lucide-trash-2"
-      theme="red"
-      variant="ghost"
-      size="xs"
-      :tooltip="t`Remove item`"
-      :aria-label="t`Remove item`"
-      @click.stop="removeAddedItem(row)"
-    />
-  </div>
-
-  <div></div>
-
-  <template v-if="isExapanded">
-    <div class="col-span-full my-3 grid w-full grid-cols-4 rounded-4">
-      <div class="px-4 col-span-2">
-        <Float
-          :df="{
-            fieldname: 'quantity',
-            fieldtype: 'Float',
-            label: t`Quantity`,
-          }"
-          @click="handleOpenKeyboard(row, 'quantity')"
-          size="medium"
-          :min="0"
-          :border="true"
-          :show-label="true"
-          :value="row.quantity"
-          :read-only="isReadOnly || isUOMConversionEnabled"
-        />
-      </div>
-
-      <div class="px-4 col-span-2">
-        <AutoComplete
-          v-if="isUOMConversionEnabled && transferUnitOptions.length"
-          :key="row.item"
-          :df="{
-            fieldname: 'transferUnit',
-            fieldtype: 'AutoComplete',
-            label: t`Transfer Unit`,
-            options: transferUnitOptions,
-          }"
-          size="medium"
-          :show-label="true"
-          :border="true"
-          :value="row.transferUnit"
-          :read-only="isReadOnly"
-          @change="(value: string) => row.set('transferUnit', value)"
-        />
-      </div>
-
-      <div class="px-4 pt-6 col-span-2">
-        <Float
-          v-if="isUOMConversionEnabled"
-          :df="{
-            fieldtype: 'Float',
-            fieldname: 'transferQuantity',
-            label: t`Transfer Quantity`,
-          }"
-          @click="!isReadOnly && handleOpenKeyboard(row, 'transferQuantity')"
-          size="medium"
-          :border="true"
-          :show-label="true"
-          :value="row.transferQuantity"
-          :read-only="isReadOnly"
-        />
-      </div>
-      <div class="px-4 pt-6 col-span-2">
-        <Currency
-          :df="{
-            fieldtype: 'Currency',
-            fieldname: 'rate',
-            label: t`Rate`,
-          }"
-          @click="handleOpenKeyboard(row, 'rate')"
-          size="medium"
-          :show-label="true"
-          :border="true"
-          :value="row.rate"
-          :read-only="isRateReadOnly"
-        />
-      </div>
-      <div class="px-4 col-span-2 mt-5">
-        <Currency
-          v-if="isDiscountingEnabled"
-          :df="{
-            fieldtype: 'Currency',
-            fieldname: 'discountAmount',
-            label: 'Discount Amount',
-          }"
-          @click="handleOpenKeyboard(row, 'itemDiscountAmount')"
-          class="col-span-2"
-          size="medium"
-          :show-label="true"
-          :border="true"
-          :value="row.itemDiscountAmount"
-          :read-only="isDiscountReadOnly((row.itemDiscountPercent as number) > 0)"
-        />
-      </div>
-
-      <div class="px-4 col-span-2 mt-5">
-        <Float
-          v-if="isDiscountingEnabled"
-          :df="{
-            fieldtype: 'Float',
-            fieldname: 'itemDiscountPercent',
-            label: t`Discount Percent`,
-          }"
-          @click="handleOpenKeyboard(row, 'itemDiscountPercent')"
-          size="medium"
-          :show-label="true"
-          :border="true"
-          :value="row.itemDiscountPercent"
-          :read-only="isDiscountReadOnly(!row.itemDiscountAmount?.isZero())"
-        />
-      </div>
-
-      <div v-if="row.links?.item && row.links?.item.hasBatch" class="px-4 pt-6 col-span-2">
-        <Link
-          :df="{
-            fieldname: 'batch',
-            fieldtype: 'Link',
-            target: 'Batch',
-            label: t`Batch`,
-            filters: { item: row.item as string },
-          }"
-          size="medium"
-          :value="row.batch"
-          :border="true"
-          :show-label="true"
-          :read-only="false"
-          @change="(value: string) => setBatch(value)"
-        />
-      </div>
-
-      <div v-if="row.links?.item && row.links?.item.hasBatch" class="px-4 pt-6 col-span-2">
-        <Float
-          :df="{
-            fieldname: 'availableQtyInBatch',
-            fieldtype: 'Float',
-            label: t`Qty in Batch`,
-          }"
-          size="medium"
-          :min="0"
-          :value="availableQtyInBatch"
-          :show-label="true"
-          :border="true"
-          :read-only="true"
-          :text-right="true"
-        />
-      </div>
-
-      <div v-if="hasSerialNumber" class="px-4 pt-6 col-span-4">
-        <Text
-          :df="{
-            label: t`Serial Number`,
-            fieldtype: 'Text',
-            fieldname: 'serialNumber',
-          }"
-          :value="String(row.serialNumber ?? '')"
-          :show-label="true"
-          :border="true"
-          :required="hasSerialNumber"
-          @change="(value: string) => setSerialNumber(value)"
-        />
-      </div>
+  <FrappeListCell class="min-h-12"
+    ><div class="w-full flex justify-center">
+      <FrappeButton
+        :icon="isExapanded ? 'lucide-chevron-up' : 'lucide-chevron-down'"
+        variant="ghost"
+        size="xs"
+        :tooltip="isExapanded ? t`Collapse item` : t`Expand item`"
+        :aria-label="isExapanded ? t`Collapse item` : t`Expand item`"
+        :aria-expanded="isExapanded"
+        @click="toggleExpand"
+      /></div
+  ></FrappeListCell>
+  <FrappeListCell class="min-h-12"
+    ><div class="w-full min-w-0 px-2">
+      <FrappeButton
+        variant="ghost"
+        class="!h-auto !w-full !justify-start !px-0 text-start [&>span]:min-w-0"
+        :tooltip="row.item"
+        @click="toggleExpand"
+      >
+        <span class="truncate text-sm text-ink-gray-9">{{
+          row.item
+        }}</span>
+      </FrappeButton>
+      <p
+        v-if="row.isFreeItem"
+        class="truncate text-xs text-ink-green-7"
+        :title="String(row.pricingRule ?? '')"
+      >
+        {{ row.pricingRule }}
+      </p>
+    </div></FrappeListCell
+  >
+  <FrappeListCell class="min-h-12"
+    ><span
+      class="w-full min-w-0 truncate px-2 text-end text-sm tabular-nums text-ink-gray-9"
+      :title="fyo.format(displayQuantity, 'Float')"
+      >{{ fyo.format(displayQuantity, 'Float') }}</span
+    ></FrappeListCell
+  >
+  <FrappeListCell class="min-h-12"
+    ><span
+      class="w-full min-w-0 truncate px-2 text-end text-sm tabular-nums text-ink-gray-9"
+      :title="fyo.format(row.rate, 'Currency')"
+      >{{ fyo.format(row.rate, 'Currency') }}</span
+    ></FrappeListCell
+  >
+  <FrappeListCell class="min-h-12"
+    ><span
+      class="w-full min-w-0 truncate px-2 text-end text-sm tabular-nums text-ink-gray-9"
+      :title="fyo.format(row.amount, 'Currency')"
+      >{{ fyo.format(row.amount, 'Currency') }}</span
+    ></FrappeListCell
+  >
+  <FrappeListCell class="min-h-12"
+    ><div class="w-full flex justify-center">
+      <FrappeButton
+        icon="lucide-trash-2"
+        theme="red"
+        variant="ghost"
+        size="xs"
+        :tooltip="t`Remove item`"
+        :aria-label="t`Remove item`"
+        @click.stop="removeAddedItem(row)"
+      /></div
+  ></FrappeListCell>
+  <div
+    v-if="isExapanded"
+    class="col-span-full grid grid-cols-2 gap-4 border-t border-outline-gray-1 px-3 py-4"
+  >
+    <div class="min-w-0">
+      <Float
+        :df="{
+          fieldname: 'quantity',
+          fieldtype: 'Float',
+          label: t`Quantity`,
+        }"
+        @click="handleOpenKeyboard(row, 'quantity')"
+        size="medium"
+        :min="0"
+        :border="true"
+        :show-label="true"
+        :value="row.quantity"
+        :read-only="isReadOnly || isUOMConversionEnabled"
+      />
     </div>
-  </template>
+
+    <div
+      v-if="isUOMConversionEnabled && transferUnitOptions.length"
+      class="min-w-0"
+    >
+      <AutoComplete
+        :key="row.item"
+        :df="{
+          fieldname: 'transferUnit',
+          fieldtype: 'AutoComplete',
+          label: t`Transfer Unit`,
+          options: transferUnitOptions,
+        }"
+        size="medium"
+        :show-label="true"
+        :border="true"
+        :value="row.transferUnit"
+        :read-only="isReadOnly"
+        @change="(value: string) => row.set('transferUnit', value)"
+      />
+    </div>
+
+    <div v-if="isUOMConversionEnabled" class="min-w-0">
+      <Float
+        :df="{
+          fieldtype: 'Float',
+          fieldname: 'transferQuantity',
+          label: t`Transfer Quantity`,
+        }"
+        @click="!isReadOnly && handleOpenKeyboard(row, 'transferQuantity')"
+        size="medium"
+        :border="true"
+        :show-label="true"
+        :value="row.transferQuantity"
+        :read-only="isReadOnly"
+      />
+    </div>
+    <div class="min-w-0">
+      <Currency
+        :df="{
+          fieldtype: 'Currency',
+          fieldname: 'rate',
+          label: t`Rate`,
+        }"
+        @click="handleOpenKeyboard(row, 'rate')"
+        size="medium"
+        :show-label="true"
+        :border="true"
+        :value="row.rate"
+        :read-only="isRateReadOnly"
+      />
+    </div>
+    <div v-if="isDiscountingEnabled" class="min-w-0">
+      <Currency
+        :df="{
+          fieldtype: 'Currency',
+          fieldname: 'discountAmount',
+          label: 'Discount Amount',
+        }"
+        @click="handleOpenKeyboard(row, 'itemDiscountAmount')"
+        class="min-w-0"
+        size="medium"
+        :show-label="true"
+        :border="true"
+        :value="row.itemDiscountAmount"
+        :read-only="
+          isDiscountReadOnly((row.itemDiscountPercent as number) > 0)
+        "
+      />
+    </div>
+
+    <div v-if="isDiscountingEnabled" class="min-w-0">
+      <Float
+        :df="{
+          fieldtype: 'Float',
+          fieldname: 'itemDiscountPercent',
+          label: t`Discount Percent`,
+        }"
+        @click="handleOpenKeyboard(row, 'itemDiscountPercent')"
+        size="medium"
+        :show-label="true"
+        :border="true"
+        :value="row.itemDiscountPercent"
+        :read-only="isDiscountReadOnly(!row.itemDiscountAmount?.isZero())"
+      />
+    </div>
+
+    <div
+      v-if="row.links?.item && row.links?.item.hasBatch"
+      class="min-w-0"
+    >
+      <Link
+        :df="{
+          fieldname: 'batch',
+          fieldtype: 'Link',
+          target: 'Batch',
+          label: t`Batch`,
+          filters: { item: row.item as string },
+        }"
+        size="medium"
+        :value="row.batch"
+        :border="true"
+        :show-label="true"
+        :read-only="false"
+        @change="(value: string) => setBatch(value)"
+      />
+    </div>
+
+    <div
+      v-if="row.links?.item && row.links?.item.hasBatch"
+      class="min-w-0"
+    >
+      <Float
+        :df="{
+          fieldname: 'availableQtyInBatch',
+          fieldtype: 'Float',
+          label: t`Qty in Batch`,
+        }"
+        size="medium"
+        :min="0"
+        :value="availableQtyInBatch"
+        :show-label="true"
+        :border="true"
+        :read-only="true"
+        :text-right="true"
+      />
+    </div>
+
+    <div v-if="hasSerialNumber" class="col-span-2 min-w-0">
+      <Text
+        :df="{
+          label: t`Serial Number`,
+          fieldtype: 'Text',
+          fieldname: 'serialNumber',
+        }"
+        :value="String(row.serialNumber ?? '')"
+        :show-label="true"
+        :border="true"
+        :required="hasSerialNumber"
+        @change="(value: string) => setSerialNumber(value)"
+      />
+    </div>
+  </div>
 </template>
 
 <script lang="ts">
+import { ListCell as FrappeListCell } from 'frappe-ui/list';
 import { Button as FrappeButton } from 'frappe-ui';
 import AutoComplete from 'src/components/Controls/AutoComplete.vue';
 import Currency from 'src/components/Controls/Currency.vue';
@@ -258,6 +251,7 @@ import { getPOSPermissionSetting } from 'src/utils/pos';
 export default defineComponent({
   name: 'ModernPOSSelectedItemRow',
   components: {
+    FrappeListCell,
     AutoComplete,
     Currency,
     Data,

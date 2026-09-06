@@ -1,21 +1,21 @@
 <template>
   <Modal
     :open-modal="openModal"
-    size="sm"
-    class="h-auto w-full"
+    :title="t`Apply Coupon Code`"
     @closemodal="cancelApplyCouponCode"
   >
-    <p class="text-center font-semibold py-3">Apply Coupon Code</p>
-    <div class="px-10">
-      <hr class="border-outline-gray-1" />
-      <p v-if="appliedCoupons.length" class="text-xs m-2 text-ink-gray-5">
+    <div class="flex flex-col gap-4">
+      <p
+        v-if="appliedCoupons.length"
+        class="text-sm font-medium text-ink-gray-7"
+      >
         {{ t`Applied Coupon Codes` }}
       </p>
       <FrappeList
         v-if="appliedCoupons.length"
         :columns="['minmax(0, 1fr)', '2rem']"
         divider="full"
-        class="custom-scroll custom-scroll-thumb2 mt-2 max-h-40 overflow-y-auto rounded-4 border border-outline-gray-1"
+        class="custom-scroll custom-scroll-thumb2 max-h-40 overflow-y-auto rounded-4 border border-outline-gray-1"
       >
         <FrappeListRows
           :items="appliedCoupons as AppliedCouponCodes[]"
@@ -53,64 +53,36 @@
         </FrappeListRows>
       </FrappeList>
 
-      <div
+      <Link
         v-if="coupons.fieldMap"
-        class="flex justify-center"
-        :class="appliedCoupons.length ? 'pb-0 pt-4' : 'pt-10'"
-      >
-        <div class="w-80" :class="appliedCoupons.length ? 'pb-4' : 'pb-10'">
-          <Link
-            v-if="coupons.fieldMap"
-            class="flex-shrink-0"
-            :show-label="true"
-            :border="true"
-            :value="couponCode"
-            :focus-input="true"
-            :df="coupons.fieldMap.coupons"
-            @change="updateCouponCode"
-          />
-        </div>
-      </div>
-
-      <div class="row-start-6 grid grid-cols-2 gap-4 mt-auto mb-2">
-        <div class="col-span-2">
-          <Button
-            size="lg"
-            theme="green"
-            type="primary"
-            class="w-full"
-            :disabled="validationError"
-            @click="setCouponCode()"
-          >
-            <slot>
-              <span>{{ t`Save` }}</span>
-            </slot>
-          </Button>
-        </div>
-      </div>
-
-      <div class="row-start-6 grid grid-cols-2 gap-4 mt-auto mb-8">
-        <div class="col-span-2">
-          <Button
-            size="lg"
-            theme="red"
-            type="primary"
-            class="w-full"
-            @click="cancelApplyCouponCode()"
-          >
-            <slot>
-              <span>{{ t`Cancel` }}</span>
-            </slot>
-          </Button>
-        </div>
-      </div>
+        class="min-w-0 w-full"
+        :show-label="true"
+        :border="true"
+        :value="couponCode"
+        :focus-input="true"
+        :df="coupons.fieldMap.coupons"
+        @change="updateCouponCode"
+      />
     </div>
+    <template #actions>
+      <Button size="lg" class="min-w-24" @click="cancelApplyCouponCode">{{
+        t`Cancel`
+      }}</Button>
+      <Button
+        size="lg"
+        class="min-w-24"
+        type="primary"
+        :disabled="validationError"
+        @click="setCouponCode"
+        >{{ t`Save` }}</Button
+      >
+    </template>
   </Modal>
 </template>
 
 <script lang="ts">
 import Button from 'src/components/Button.vue';
-import Modal from 'src/components/Modal.vue';
+import Modal from 'src/components/POS/POSDialog.vue';
 import { SalesInvoice } from 'models/baseModels/SalesInvoice/SalesInvoice';
 import { defineComponent, inject } from 'vue';
 import { t } from 'fyo';

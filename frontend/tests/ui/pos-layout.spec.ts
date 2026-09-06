@@ -1,0 +1,247 @@
+import { expect, test, type Page } from '@playwright/test';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { build, preview, loadConfigFromFile, type PreviewServer } from 'vite';
+
+let server: PreviewServer;
+let directory: string;
+let url: string;
+
+test.beforeAll(async () => {
+  const loaded = await loadConfigFromFile(
+    { command: 'serve', mode: 'test' },
+    path.resolve(__dirname, '../../vite.config.ts')
+  );
+  directory = await mkdtemp(path.join(tmpdir(), 'books-pos-ui-'));
+  const config = {
+    ...loaded!.config,
+    configFile: false,
+    root: path.resolve(__dirname, '../..'),
+    logLevel: 'error' as const,
+    build: {
+      ...loaded!.config.build,
+      outDir: directory,
+      rollupOptions: { input: path.resolve(__dirname, 'fixtures/pos.html') },
+    },
+    preview: { host: '127.0.0.1', port: 0, proxy: {} },
+  };
+  await build(config);
+  server = await preview(config);
+  url = `${server.resolvedUrls!.local[0]}tests/ui/fixtures/pos.html`;
+});
+test.afterAll(async () => {
+  if (server)
+    await new Promise<void>((resolve) =>
+      server.httpServer.close(() => resolve())
+    );
+  if (directory) await rm(directory, { recursive: true, force: true });
+});
+test.beforeEach(async ({ page }) => {
+  await page.goto(url);
+  await expect(page.getByText('No items in this sale')).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+});
+
+const dialogs = [
+  ['PriceList', 'Apply Price List'],
+  ['CouponCode', 'Apply Coupon Code'],
+  ['ItemEnquiry', 'Item Enquiry'],
+  ['LoyaltyProgram', 'Redeem Loyalty Points'],
+  ['BatchSelection', 'Select Batch'],
+  ['SavedInvoice', 'Saved and Submitted Invoices'],
+  ['ReturnSalesInvoice', 'Return Sales Invoice'],
+  ['Payment', 'Complete payment'],
+  ['Alert', 'Leave this sale?'],
+  ['ShiftClose', 'Close POS Shift'],
+];
+for (const viewport of [
+  { width: 1440, height: 900 },
+  { width: 1024, height: 640 },
+  { width: 390, height: 560 },
+]) {
+  test(`dialogs keep titles and actions visible at ${viewport.width} × ${viewport.height}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    for (const [name, title] of dialogs) {
+      await showModal(page, name);
+      const dialog = page.getByRole('dialog', { name: title, exact: true });
+      await expect(dialog).toBeVisible();
+      await expect(dialog.locator('footer')).toBeInViewport();
+      const bounds = (await dialog.boundingBox())!;
+      expect(bounds.x).toBeGreaterThanOrEqual(0);
+      expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width);
+      expect(bounds.y + bounds.height).toBeLessThanOrEqual(viewport.height);
+      await page.screenshot({
+        animations: 'disabled',
+        path: test.info().outputPath(`${name}.png`),
+      });
+      await dialog.getByRole('button', { name: 'Close', exact: true }).focus();
+      await page.keyboard.press('Escape');
+      await expect(dialog).toBeHidden();
+    }
+    await page.evaluate(() => {
+      const f = (window as any).posFixture;
+      f.fyo.singles.POSSettings.isShiftOpen = false;
+      f.state.shiftOpen = false;
+    });
+    const opening = page.getByRole('dialog', {
+      name: 'Open POS Shift',
+      exact: true,
+    });
+    await expect(opening).toBeVisible();
+    await expect(
+      opening.getByRole('button', { name: 'Open Shift', exact: true })
+    ).toBeInViewport();
+    await page.screenshot({
+      animations: 'disabled',
+      path: test.info().outputPath('OpenShift.png'),
+    });
+  });
+}
+
+test('cart values fit and expanded item fields open a usable keypad', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.evaluate(() => (window as any).posFixture.fillCart());
+  const rows = page.locator('[data-slot="list-row"]').filter({
+    has: page.getByRole('button', { name: 'Expand item', exact: true }),
+  });
+  await expect(rows).toHaveCount(3);
+  for (const row of await rows.all()) {
+    expect((await row.boundingBox())!.height).toBeGreaterThanOrEqual(48);
+    for (const value of await row.locator('[role="cell"] > span').all()) {
+      expect(
+        await value.evaluate((el) => el.scrollWidth <= el.clientWidth)
+      ).toBe(true);
+    }
+  }
+  await page
+    .getByRole('button', { name: 'Expand item', exact: true })
+    .first()
+    .click();
+  await page.screenshot({
+    animations: 'disabled',
+    path: test.info().outputPath('modern-expanded.png'),
+  });
+  await page.getByRole('spinbutton', { name: 'Quantity', exact: true }).click();
+  const keypad = page.getByRole('dialog', {
+    name: 'Edit Quantity',
+    exact: true,
+  });
+  await expect(keypad).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 560 });
+  await expect(
+    keypad.getByRole('button', { name: 'Save', exact: true })
+  ).toBeInViewport();
+  await keypad
+    .getByRole('textbox', { name: 'Quantity', exact: true })
+    .fill('-1');
+  await keypad.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(keypad).toContainText('cannot be negative');
+  await page.screenshot({
+    animations: 'disabled',
+    path: test.info().outputPath('keypad-validation.png'),
+  });
+  await keypad.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await expect(keypad).toBeHidden();
+});
+
+test('view toggles survive switching layouts and checkout remains reachable', async ({
+  page,
+}) => {
+  await page.getByRole('button', { name: 'Grid View', exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: 'List View', exact: true })
+  ).toBeVisible();
+  await page.screenshot({
+    animations: 'disabled',
+    path: test.info().outputPath('item-grid.png'),
+  });
+  await page.evaluate(() => {
+    (window as any).posFixture.state.modern = false;
+  });
+  await expect(
+    page.getByRole('button', { name: 'List View', exact: true })
+  ).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 700 });
+  await page
+    .getByRole('button', { name: 'Add Organic Assam Tea', exact: true })
+    .scrollIntoViewIfNeeded();
+  await page.screenshot({
+    animations: 'disabled',
+    path: test.info().outputPath('item-grid-small.png'),
+  });
+  await page.getByRole('button', { name: 'List View', exact: true }).click();
+  await page.evaluate(() => (window as any).posFixture.fillCart());
+  for (const modern of [true, false]) {
+    await page.evaluate((modern) => {
+      (window as any).posFixture.state.modern = modern;
+    }, modern);
+    await page.setViewportSize({ width: 390, height: 700 });
+    const pay = page.getByRole('button', { name: 'Pay', exact: true });
+    await pay.scrollIntoViewIfNeeded();
+    await expect(pay).toBeInViewport();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth)
+    ).toBe(390);
+    await page.screenshot({
+      animations: 'disabled',
+      path: test
+        .info()
+        .outputPath(modern ? 'modern-small.png' : 'classic-small.png'),
+    });
+  }
+});
+
+test('invoice selection and bank payment fields work in a small dialog', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 560 });
+  await showModal(page, 'ReturnSalesInvoice');
+  const dialog = page.getByRole('dialog');
+  await dialog
+    .getByRole('textbox', { name: 'Search by invoice name' })
+    .fill('0001');
+  await expect(dialog.getByRole('checkbox')).toHaveCount(1);
+  await dialog.getByRole('checkbox').check();
+  await expect(
+    dialog.getByRole('button', { name: 'Create Return' })
+  ).toBeEnabled();
+  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await showModal(page, 'Payment');
+  await dialog
+    .getByRole('button', { name: 'Bank Transfer', exact: true })
+    .click();
+  await expect(dialog.getByRole('textbox', { name: /Ref\./ })).toBeVisible();
+  await dialog.getByRole('textbox', { name: /Ref\./ }).fill('BANK-006');
+  await page.screenshot({
+    animations: 'disabled',
+    path: test.info().outputPath('bank-payment-small.png'),
+  });
+  await page.evaluate(() => {
+    (window as any).posFixture.state.invoice.returnAgainst = 'SINV-2026-0001';
+    document.documentElement.classList.add('dark');
+    document.documentElement.dataset.theme = 'dark';
+  });
+  await expect(
+    page.getByRole('dialog', { name: 'Complete refund' })
+  ).toBeVisible();
+  await expect(
+    dialog.getByRole('button', { name: 'Refund & print', exact: true })
+  ).toBeVisible();
+  await page.screenshot({
+    animations: 'disabled',
+    path: test.info().outputPath('refund-dark.png'),
+  });
+});
+async function showModal(page: Page, name: string) {
+  await page.evaluate((name) => {
+    const fixture = (window as any).posFixture;
+    if (name === 'Payment' && !fixture.state.invoice.items.length)
+      fixture.fillCart();
+    fixture.state.modal = name;
+  }, name);
+}
