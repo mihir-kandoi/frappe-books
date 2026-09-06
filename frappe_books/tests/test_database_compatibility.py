@@ -4,7 +4,8 @@ import frappe
 from frappe.tests import IntegrationTestCase
 from frappe.utils import getdate
 
-from frappe_books.setup import ensure_numeric_name_series, normalize_ledger_dates
+from frappe_books.migrations import normalize_ledger_dates
+from frappe_books.setup import ensure_numeric_name_series
 from frappe_books.tests.accounting import make_account
 
 

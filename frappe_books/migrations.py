@@ -10,14 +10,14 @@ from frappe.utils import getdate
 from frappe_books.accounting.money import as_decimal
 from frappe_books.currency import currency_fraction_values, currency_precision
 
-VOUCHER_TYPES = {
-	"Books Sales Invoice",
-	"Books Purchase Invoice",
-	"Books Payment",
-	"Books Journal Entry",
-	"Books Stock Movement",
-	"Books Shipment",
-	"Books Purchase Receipt",
+VOUCHER_DATE_FIELDS = {
+	"Books Sales Invoice": "date",
+	"Books Purchase Invoice": "date",
+	"Books Payment": "date",
+	"Books Journal Entry": "posting_date",
+	"Books Stock Movement": "date",
+	"Books Shipment": "date",
+	"Books Purchase Receipt": "date",
 }
 
 
@@ -37,19 +37,24 @@ def normalize_ledger_dates():
 		if len(str(entry.posting_date or "")) > 10:
 			by_type[entry.voucher_type].append(entry)
 	for voucher_type, rows in by_type.items():
-		dates = {}
-		if voucher_type in VOUCHER_TYPES:
-			dates = dict(
-				frappe.get_all(
-					voucher_type,
-					filters={"name": ["in", list({row.voucher_no for row in rows})]},
-					fields=["name", "date"],
-					as_list=True,
-				)
-			)
+		dates = _voucher_dates(voucher_type, rows)
 		for row in rows:
 			date = getdate(dates.get(row.voucher_no) or row.posting_date[:10])
 			frappe.db.set_value("Books Ledger Entry", row.name, "posting_date", date, update_modified=False)
+
+
+def _voucher_dates(voucher_type, rows):
+	date_field = VOUCHER_DATE_FIELDS.get(voucher_type)
+	if not date_field:
+		return {}
+	return dict(
+		frappe.get_all(
+			voucher_type,
+			filters={"name": ["in", list({row.voucher_no for row in rows})]},
+			fields=["name", date_field],
+			as_list=True,
+		)
+	)
 
 
 def convert_line_discounts():

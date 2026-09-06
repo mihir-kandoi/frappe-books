@@ -87,7 +87,6 @@ def after_migrate():
 	ensure_print_formats()
 	ensure_desktop_icons()
 	sync_all_custom_forms()
-	normalize_ledger_dates()
 
 
 def ensure_numeric_name_series():
@@ -113,12 +112,6 @@ def _max_numeric_name(doctype):
 	name_type = "signed" if frappe.db.db_type == "mariadb" else "bigint"
 	maximum = frappe.qb.from_(table).select(Max(Cast_(table.name, name_type))).run()[0][0]
 	return int(maximum or 0)
-
-
-def normalize_ledger_dates():
-	from frappe_books.migrations import normalize_ledger_dates as repair_dates
-
-	repair_dates()
 
 
 def ensure_roles():
