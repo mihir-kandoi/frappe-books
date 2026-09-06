@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from base64 import b64decode
-from binascii import Error as BinasciiError
 from datetime import UTC, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -585,7 +584,7 @@ def _normalize_attach_image(meta, fieldname: str, value: Any) -> Any:
 		return value
 	try:
 		decoded = b64decode(payload, validate=True).decode()
-	except BinasciiError, UnicodeDecodeError, ValueError:
+	except ValueError:
 		return value
 	return decoded if decoded.startswith("data:image/") else value
 
