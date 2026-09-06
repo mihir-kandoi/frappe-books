@@ -177,7 +177,7 @@ body,
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-color: #d1d8dd transparent;
-  scrollbar-gutter: stable;
+  scrollbar-gutter: stable both-edges;
   scrollbar-width: thin;
   -webkit-overflow-scrolling: touch;
 }
