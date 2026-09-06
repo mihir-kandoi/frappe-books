@@ -6,9 +6,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 
-const directory = await mkdtemp(
-  path.join(tmpdir(), 'books-accounting-tests-')
-);
+const directory = await mkdtemp(path.join(tmpdir(), 'books-accounting-tests-'));
 after(() => rm(directory, { recursive: true, force: true }));
 const output = path.join(directory, 'accounting.cjs');
 const frontend = fileURLToPath(new URL('../..', import.meta.url));

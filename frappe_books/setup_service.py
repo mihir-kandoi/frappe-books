@@ -57,8 +57,11 @@ def ensure_currency(currency):
 			"symbol": core_currency.get("symbol") or currency,
 			"fraction": core_currency.get("fraction") or "Cent",
 			"fraction_units": 0 if currency == "JPY" else core_currency.get("fraction_units", 100),
-			"smallest_value": core_currency.get("smallest_currency_fraction_value")
-			or 10 ** -currency_precision(currency),
+			"smallest_value": 1
+			if currency == "JPY"
+			else (
+				core_currency.get("smallest_currency_fraction_value") or 10 ** -currency_precision(currency)
+			),
 		}
 	).insert(ignore_permissions=True)
 

@@ -71,10 +71,7 @@ test('balance sheets include opening balances while P&L shows each period', asyn
     [150, 130]
   );
   report.toDate = '2024-12-31';
-  assert.deepEqual((await report._getQueryFilters()).date, [
-    '<',
-    '2025-01-01',
-  ]);
+  assert.deepEqual((await report._getQueryFilters()).date, ['<', '2025-01-01']);
 
   const profit = new ProfitAndLoss(fyo);
   profit._dateRanges = ranges;
@@ -110,11 +107,7 @@ test('computed filters work without rendered rows, for every offered operator', 
     [['is null', ''], false],
     [['is not null', ''], true],
   ])
-    assert.equal(
-      matchesStatus(row, filter),
-      expected,
-      JSON.stringify(filter)
-    );
+    assert.equal(matchesStatus(row, filter), expected, JSON.stringify(filter));
   assert.throws(() => matchesStatus(row, ['invalid', '']), /Unsupported/);
 });
 
@@ -123,8 +116,7 @@ for (const quantity of [3, -3]) {
     const { invoice, row, fyo } = await makeInvoice(quantity);
     row.setItemDiscountAmount = true;
     row.itemDiscountAmount = fyo.pesa(50);
-    row.itemDiscountedTotal =
-      await row.formulas.itemDiscountedTotal.formula();
+    row.itemDiscountedTotal = await row.formulas.itemDiscountedTotal.formula();
     row.itemTaxedTotal = await row.formulas.itemTaxedTotal.formula();
     assert.equal(row.itemDiscountedTotal.float, Math.sign(quantity) * 250);
     assert.equal(
@@ -183,3 +175,49 @@ async function makeInvoice(quantity) {
   invoice.netTotal = fyo.pesa(quantity * 100);
   return { invoice, row: invoice.items[0], fyo };
 }
+
+test('payment write-offs keep the From/To convention in frontend postings', async () => {
+  const fyo = await makeFyo();
+  fyo.db.exists = async () => true;
+  fyo.singles.AccountingSettings.writeOffAccount = 'Write Off';
+  for (const paymentType of ['Receive', 'Pay']) {
+    for (const writeoff of [0, 2.5]) {
+      const payment = fyo.doc.getNewDoc('Payment', {
+        paymentType,
+        account: paymentType === 'Pay' ? 'Cash' : 'Party',
+        paymentAccount: paymentType === 'Pay' ? 'Party' : 'Cash',
+        amount: fyo.pesa(157.5),
+        writeoff: fyo.pesa(writeoff),
+      });
+      const posting = await payment.getPosting();
+      posting.validate();
+      const balances = {};
+      for (const entry of posting.entries) {
+        balances[entry.account] =
+          (balances[entry.account] ?? 0) +
+          entry.debit.float -
+          entry.credit.float;
+      }
+      const sign = paymentType === 'Receive' ? 1 : -1;
+      assert.equal(balances.Cash, sign * (157.5 - writeoff));
+      assert.equal(balances.Party, -sign * 157.5);
+      assert.equal(balances['Write Off'] ?? 0, sign * writeoff || 0);
+      payment.for = [{ amount: fyo.pesa(157.5) }];
+      assert.doesNotThrow(() => payment.validateTotalReferenceAmount());
+      payment.for = [{ amount: fyo.pesa(160) }];
+      assert.throws(() => payment.validateTotalReferenceAmount());
+    }
+  }
+});
+
+test('automatic rates refresh while manual rates survive exchange changes', async () => {
+  const { row, fyo } = await makeInvoice(3);
+  fyo.getValue = async (_schema, _name, field) =>
+    field === 'rate' ? fyo.pesa(200) : undefined;
+  await row.set('quantity', 4);
+  assert.equal(row.rate.float, 200);
+  await row.set('rate', fyo.pesa(75));
+  assert.equal((await row.formulas.rate.formula('exchangeRate')).float, 75);
+  assert.equal((await row.formulas.rate.formula('priceList')).float, 200);
+  assert.equal(row.isManualRate, false);
+});

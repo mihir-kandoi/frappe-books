@@ -66,6 +66,8 @@ def convert_line_discounts():
 def update_currency_display():
 	from frappe_books.currency import currency_precision
 
+	if frappe.db.exists("Books Currency", "JPY"):
+		frappe.db.set_value("Books Currency", "JPY", {"fraction_units": 0, "smallest_value": 1})
 	settings = frappe.get_single("Books System Settings")
 	if settings.display_precision == 2:
 		frappe.db.set_single_value(
