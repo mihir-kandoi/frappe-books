@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from typing import Any
 
@@ -9,7 +10,10 @@ import frappe
 from frappe.utils import get_datetime, getdate
 
 from frappe_books.accounting.money import as_decimal, rounded
+from frappe_books.setup import max_numeric_name
 from frappe_books.ui_bridge.mapping import target_doctype
+
+NUMERIC_AUTONAME = re.compile(r"format:\{#+\}")
 
 
 class BooksBespokeQueries:
@@ -37,7 +41,6 @@ class BooksBespokeQueries:
 			target_doctype(source_schema),
 			filters={"docstatus": 1, "date": ["between", [from_date, to_date]]},
 			fields=["base_grand_total", "outstanding_amount"],
-			limit=5000,
 		)
 		return {
 			"total": rounded(sum((abs(as_decimal(row.base_grand_total)) for row in values), as_decimal(0))),
@@ -108,7 +111,7 @@ class BooksBespokeQueries:
 			filters["date"] = [">=", from_date]
 		elif to_date:
 			filters["date"] = ["<=", to_date]
-		values = frappe.get_list("Books Stock Ledger Entry", filters=filters, pluck="quantity", limit=5000)
+		values = frappe.get_list("Books Stock Ledger Entry", filters=filters, pluck="quantity")
 		if not values:
 			return None
 		return float(sum((as_decimal(value) for value in values), as_decimal(0)))
@@ -128,9 +131,7 @@ class BooksBespokeQueries:
 
 	def pos_transacted_amount(self, from_date, to_date, _last_shift_closing_date=None):
 		filters = {"docstatus": 1, "date": ["between", [get_datetime(from_date), get_datetime(to_date)]]}
-		payments = frappe.get_list(
-			"Books Payment", filters=filters, fields=["payment_method", "amount"], limit=5000
-		)
+		payments = frappe.get_list("Books Payment", filters=filters, fields=["payment_method", "amount"])
 		totals = defaultdict(as_decimal)
 		for payment in payments:
 			totals[payment.payment_method] += as_decimal(payment.amount)
@@ -138,8 +139,12 @@ class BooksBespokeQueries:
 
 	def last_inserted(self, source_schema: str) -> int:
 		"""Return the highest numeric name used by an autoincrement Books schema."""
-		names = frappe.get_list(target_doctype(source_schema), pluck="name", limit=5000)
-		return max((int(name) for name in names if str(name).isdigit()), default=0)
+		target = target_doctype(source_schema)
+		if not NUMERIC_AUTONAME.fullmatch(frappe.get_meta(target).autoname or ""):
+			frappe.throw(f"{source_schema} does not use numeric names")
+		if not frappe.has_permission(target, ptype="read"):
+			raise frappe.PermissionError
+		return max_numeric_name(target)
 
 	def _ledger(self, from_date=None, to_date=None):
 		filters: dict[str, Any] = {"reverted": 0}
@@ -149,7 +154,6 @@ class BooksBespokeQueries:
 			"Books Ledger Entry",
 			filters=filters,
 			fields=["posting_date", "account", "debit", "credit"],
-			limit=10000,
 		)
 
 	def _add_serials(self, entry, row):

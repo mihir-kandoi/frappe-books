@@ -91,7 +91,7 @@ def after_migrate():
 
 def ensure_numeric_name_series():
 	"""Keep formatted numeric names ahead of legacy autoincrement rows."""
-	maximum = max((_max_numeric_name(doctype) for doctype in NUMERIC_NAME_DOCTYPES), default=0)
+	maximum = max((max_numeric_name(doctype) for doctype in NUMERIC_NAME_DOCTYPES), default=0)
 	if not maximum:
 		return
 
@@ -105,7 +105,8 @@ def ensure_numeric_name_series():
 	frappe.qb.into(series).columns(series.name, series.current).insert("", maximum).run()
 
 
-def _max_numeric_name(doctype):
+def max_numeric_name(doctype):
+	"""Return the largest integer name in a doctype whose names are all numeric."""
 	if not frappe.db.table_exists(doctype):
 		return 0
 	table = frappe.qb.DocType(doctype)

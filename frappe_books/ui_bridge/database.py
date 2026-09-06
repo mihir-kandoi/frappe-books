@@ -76,49 +76,36 @@ class BooksDatabaseBridge:
 			target,
 			filters,
 			target_fields,
-			offset=options.offset or 0,
-			limit=min(max(int(options.limit or 500), 1), 5000),
+			offset=cint(options.offset),
+			limit=_row_limit(options.limit),
 			order_by=order_by,
 			group_by=group_by,
 		)
 		return [self._row_to_source(source_schema, row, requested) for row in rows]
 
 	def _get_list_rows(self, target, filters, fields, offset, limit, order_by, group_by):
-		if not frappe.get_meta(target).istable:
-			return frappe.get_list(
-				target,
-				filters=filters,
-				fields=fields,
-				start=offset,
-				limit=limit,
-				order_by=order_by,
-				group_by=group_by,
-			)
+		if frappe.get_meta(target).istable:
+			rows = self._get_child_rows(target, filters, fields, order_by, group_by)
+			return rows[offset : offset + limit if limit else None]
 
-		parent_doctypes = self._child_parent_doctypes(target)
+		query = {"filters": filters, "fields": fields, "order_by": order_by, "group_by": group_by}
+		if limit:
+			return frappe.get_list(target, start=offset, limit=limit, **query)
+		# Frappe only applies an offset together with a limit.
+		return frappe.get_list(target, **query)[offset:]
+
+	def _get_child_rows(self, target, filters, fields, order_by, group_by):
 		rows = []
-		for parent_doctype in parent_doctypes:
+		for parent_doctype in self._child_parent_doctypes(target):
 			rows.extend(
-				self._get_child_rows(
-					target,
-					parent_doctype,
-					filters,
-					fields,
-					order_by,
-					group_by,
-				)
+				self._get_parent_child_rows(target, parent_doctype, filters, fields, order_by, group_by)
 			)
-		return rows[offset : offset + limit]
+		return rows
 
-	def _get_child_rows(self, target, parent_doctype, filters, fields, order_by, group_by):
+	def _get_parent_child_rows(self, target, parent_doctype, filters, fields, order_by, group_by):
 		child_filters = [["parenttype", "=", parent_doctype], *filters]
 		parent_filters = [[target, *condition] for condition in child_filters]
-		parent_names = frappe.get_list(
-			parent_doctype,
-			filters=parent_filters,
-			pluck="name",
-			limit=5000,
-		)
+		parent_names = frappe.get_list(parent_doctype, filters=parent_filters, pluck="name")
 		if not parent_names:
 			return []
 
@@ -127,7 +114,6 @@ class BooksDatabaseBridge:
 			target,
 			filters=child_filters,
 			fields=fields,
-			limit=5000,
 			order_by=order_by,
 			group_by=group_by,
 			parent_doctype=parent_doctype,
@@ -226,7 +212,6 @@ class BooksDatabaseBridge:
 			target_doctype(source_schema),
 			filters=self._target_filters(source_schema, filters),
 			pluck="name",
-			limit=5000,
 		)
 		for name in names:
 			self.delete(source_schema, name)
@@ -541,6 +526,12 @@ class BooksDatabaseBridge:
 	def _is_password_field(self, meta, fieldname):
 		field = meta.get_field(fieldname)
 		return bool(field and field.fieldtype == "Password")
+
+
+def _row_limit(value: Any) -> int | None:
+	if value in (None, ""):
+		return None
+	return max(cint(value), 1)
 
 
 def _snake_case(value: str) -> str:
