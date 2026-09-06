@@ -433,6 +433,7 @@ export abstract class AccountReport extends LedgerReport {
         label,
         fieldtype: 'Data',
         fieldname: 'toDate',
+        key: `toDate:${toDate.toISODate()}`,
         align: 'right',
         width: ACC_BAL_WIDTH,
       } as ColumnField;

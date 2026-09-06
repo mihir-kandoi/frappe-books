@@ -1,0 +1,90 @@
+import { createApp, h, reactive, ref } from 'vue';
+import { t } from 'fyo';
+import { StockLedger } from 'reports/inventory/StockLedger';
+import { BalanceSheet } from 'reports/BalanceSheet/BalanceSheet';
+import { DateTime } from 'luxon';
+import type { Report } from 'reports/Report';
+import ListReport from 'src/components/Report/ListReport.vue';
+import { fyo } from 'src/initFyo';
+import { languageDirectionKey } from 'src/utils/injectionKeys';
+import 'src/styles/index.css';
+
+const itemName = 'Wireless Keyboard with Multi-Device Bluetooth and Number Pad';
+const lastItemName =
+  'Premium Wireless Keyboard with Multi-Device Bluetooth, Number Pad and Rechargeable Battery';
+
+class OtherReport extends StockLedger {
+  static reportName = 'other-report';
+}
+
+// Reports and rows exist only in browser memory. No database calls are needed.
+fyo.singles.InventorySettings = {
+  enableBatches: true,
+  enableSerialNumber: true,
+} as any;
+function makeReport(ReportClass = StockLedger) {
+  const report = new ReportClass(fyo);
+  report.columns = report.getColumns();
+  report.reportData = Array.from({ length: 51 }, (_, index) => {
+    const values: Record<string, string> = {
+      name: String(index + 1),
+      date: 'Sep 6, 2026 07:45:32',
+      item: index === 50 ? lastItemName : itemName,
+      location: 'Retail Floor',
+      batch: '',
+      serialNumber: 'DEMO-SERIAL-WIRELESS-KEYBOARD-000001',
+      quantity: '-1.00',
+      balanceQuantity: '1.00',
+      incomingRate: '1,369.00',
+    };
+    return {
+      cells: report.columns.map((column) => ({
+        value: values[column.fieldname] ?? '0.00',
+        rawValue: values[column.fieldname],
+        align:
+          column.fieldtype === 'Float' || column.fieldtype === 'Currency'
+            ? ('right' as const)
+            : ('left' as const),
+        color: column.fieldname === 'quantity' ? ('red' as const) : undefined,
+      })),
+    };
+  });
+  return reactive(report);
+}
+
+const state = reactive<{ report: Report }>({ report: makeReport() });
+const direction = ref<'ltr' | 'rtl'>('ltr');
+const app = createApp({
+  render: () => h(ListReport, { report: state.report }),
+});
+app.config.globalProperties.t = t;
+app.config.globalProperties.fyo = fyo;
+app.provide(languageDirectionKey, direction);
+app.mount('#app');
+
+(window as any).reportFixture = {
+  state,
+  direction,
+  itemName,
+  lastItemName,
+  switchReport: () => {
+    state.report = makeReport(OtherReport);
+  },
+  showBalanceSheet: () => {
+    const report = new BalanceSheet(fyo);
+    report._dateRanges = ['2026-09-01', '2026-08-01'].map((date) => ({
+      toDate: DateTime.fromISO(date),
+      fromDate: DateTime.fromISO(date).minus({ months: 1 }),
+    }));
+    report.columns = report.getColumns();
+    report.reportData = [
+      {
+        cells: report.columns.map((column, index) => ({
+          value: index ? '1,000.00' : 'Application of Funds (Assets)',
+          rawValue: index ? 1000 : 'Application of Funds (Assets)',
+        })),
+      },
+    ];
+    state.report = report;
+  },
+};

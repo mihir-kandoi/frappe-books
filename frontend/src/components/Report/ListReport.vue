@@ -8,14 +8,20 @@
       class="custom-scroll custom-scroll-thumb1 min-h-0 flex-1 overflow-auto px-4 list-gap-0 [--list-row-padding-x:0px]"
     >
       <FrappeListHeader class="sticky top-0 z-10 bg-surface-base">
-        <FrappeListHeaderCell
+        <ReportColumnHeader
           v-for="(column, index) in report.columns"
-          :key="`${index}-column`"
-          class="px-3 text-base"
+          :key="columnWidths.getKey(column)"
+          :ref="
+            (header) => (columnHeaders[columnWidths.getKey(column)] = header)
+          "
+          :label="column.label"
+          :width="columnWidths.get(column)"
+          :direction="languageDirection"
           :class="getAlignmentClass(column)"
-        >
-          {{ column.label }}
-        </FrappeListHeaderCell>
+          @resize="columnWidths.set(column, $event)"
+          @commit="columnWidths.set(column, $event, true)"
+          @fit="fitColumn(column, index)"
+        />
       </FrappeListHeader>
 
       <FrappeListRows :items="dataSlice" :row-key="getRowKey">
@@ -33,7 +39,7 @@
               :class="[getCellColorClass(cell), getAlignmentClass(cell)]"
               :style="getCellStyle(cell)"
             >
-              <span class="w-full truncate">{{ cell.value }}</span>
+              <ReportOverflowText :value="cell.value" />
             </FrappeListCell>
           </FrappeListRow>
         </template>
@@ -60,22 +66,24 @@ import {
   List as FrappeList,
   ListCell as FrappeListCell,
   ListHeader as FrappeListHeader,
-  ListHeaderCell as FrappeListHeaderCell,
   ListRow as FrappeListRow,
   ListRows as FrappeListRows,
 } from 'frappe-ui/list';
 import { isNumeric } from 'src/utils';
 import { languageDirectionKey } from 'src/utils/injectionKeys';
-import { defineComponent } from 'vue';
+import { defineComponent, inject } from 'vue';
 import Paginator from '../Paginator.vue';
-import { inject } from 'vue';
+import ReportColumnHeader from './ReportColumnHeader.vue';
+import { ReportColumnWidths } from './ReportColumnWidths';
+import ReportOverflowText from './ReportOverflowText.vue';
 
 export default defineComponent({
   components: {
     FrappeList,
     FrappeListCell,
     FrappeListHeader,
-    FrappeListHeaderCell,
+    ReportColumnHeader,
+    ReportOverflowText,
     FrappeListRow,
     FrappeListRows,
     Paginator,
@@ -90,7 +98,8 @@ export default defineComponent({
   },
   data() {
     return {
-      wconst: 8,
+      columnWidths: new ReportColumnWidths(this.report.reportName),
+      columnHeaders: {},
       hconst: 48,
       pageStart: 0,
       pageEnd: 0,
@@ -106,11 +115,24 @@ export default defineComponent({
     },
     listColumns() {
       return this.report.columns.map(
-        (column) => `${(column.width ?? 1) * this.wconst}rem`
+        (column) => `${this.columnWidths.get(column)}px`
       );
     },
   },
+  watch: {
+    'report.reportName'(name) {
+      this.columnWidths = new ReportColumnWidths(name);
+    },
+  },
   methods: {
+    fitColumn(column, index) {
+      this.columnWidths.fit(
+        column,
+        index,
+        this.report.reportData,
+        this.columnHeaders[this.columnWidths.getKey(column)].$el
+      );
+    },
     getRowKey(row, index) {
       return `${index}-${row.cells?.[0]?.value ?? ''}`;
     },
@@ -160,7 +182,8 @@ export default defineComponent({
         return 'justify-end text-end';
       }
 
-      const alignment = cell.align ?? (isNumeric(cell.fieldtype) ? 'right' : 'left');
+      const alignment =
+        cell.align ?? (isNumeric(cell.fieldtype) ? 'right' : 'left');
       if (alignment === 'right') {
         return 'justify-end text-end';
       }

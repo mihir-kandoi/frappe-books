@@ -25,6 +25,8 @@ export interface ReportRow {
 }
 export type ReportData = ReportRow[];
 export interface ColumnField extends Omit<BaseField, 'fieldtype'> {
+  // Distinguishes repeated fields, such as balances for different periods.
+  key?: string;
   fieldtype: FieldType;
   align?: 'left' | 'right' | 'center';
   width?: number;
