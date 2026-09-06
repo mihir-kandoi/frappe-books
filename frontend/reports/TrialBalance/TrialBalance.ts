@@ -1,5 +1,5 @@
+import { getAccountLabel } from 'src/utils/accountLabel';
 import { t } from 'fyo';
-import { ValueError } from 'fyo/utils/errors';
 import { DateTime } from 'luxon';
 import {
   AccountRootType,
@@ -103,25 +103,26 @@ export class TrialBalance extends AccountReport {
     for (const account of map.keys()) {
       const valueMap: ValueMap = new Map();
 
-      /**
-       * Set Balance for every DateRange key
-       */
-      for (const entry of map.get(account)!) {
-        const key = this._getRangeMapKey(entry);
-        if (key === null) {
-          throw new ValueError(
-            `invalid entry in trial balance ${entry.date?.toISOString() ?? ''}`
+      for (const [index, range] of this._dateRanges!.entries()) {
+        let debit = 0;
+        let credit = 0;
+        for (const entry of map.get(account)!) {
+          const date = DateTime.fromISO(
+            entry.date!.toISOString().split('T')[0]
           );
+          if (date < range.fromDate || date >= range.toDate) {
+            continue;
+          }
+          debit += entry.debit ?? 0;
+          credit += entry.credit ?? 0;
         }
-
-        const map = valueMap.get(key);
-        const totalCredit = map?.credit ?? 0;
-        const totalDebit = map?.debit ?? 0;
-
-        valueMap.set(key, {
-          credit: totalCredit + (entry.credit ?? 0),
-          debit: totalDebit + (entry.debit ?? 0),
-        });
+        // Opening and closing are balances; the period columns show turnover.
+        if (index !== 1) {
+          const balance = debit - credit;
+          debit = Math.max(balance, 0);
+          credit = Math.max(-balance, 0);
+        }
+        valueMap.set(range, { debit, credit });
       }
 
       accountValueMap.set(account, valueMap);
@@ -135,7 +136,7 @@ export class TrialBalance extends AccountReport {
       await this.setDefaultFilters();
     }
 
-    const toDate = DateTime.fromISO(this.toDate!);
+    const toDate = DateTime.fromISO(this.toDate!).plus({ days: 1 });
     const fromDate = DateTime.fromISO(this.fromDate!);
 
     return [
@@ -145,15 +146,15 @@ export class TrialBalance extends AccountReport {
       },
       { fromDate, toDate },
       {
-        fromDate: toDate,
-        toDate: DateTime.fromISO('9999-12-31'),
+        fromDate: DateTime.fromISO('0001-01-01'),
+        toDate,
       },
     ];
   }
 
   getRowFromAccountListNode(al: AccountListNode) {
     const nameCell = {
-      value: al.name,
+      value: getAccountLabel(al.name),
       rawValue: al.name,
       align: 'left',
       width: ACC_NAME_WIDTH,
@@ -194,6 +195,12 @@ export class TrialBalance extends AccountReport {
   async _getQueryFilters(): Promise<QueryFilter> {
     const filters: QueryFilter = {};
     filters.reverted = false;
+    if (this.toDate) {
+      filters.date = [
+        '<',
+        DateTime.fromISO(this.toDate).plus({ days: 1 }).toISODate(),
+      ];
+    }
     return filters;
   }
 

@@ -26,6 +26,7 @@ export function getCOAList() {
     { countryCode: 'ae', name: 'U.A.E - Chart of Accounts' },
     {
       countryCode: 'ca',
+      language: 'fr',
       name: 'Canada - Plan comptable pour les provinces francophones',
     },
     { countryCode: 'gt', name: 'Guatemala - Cuentas' },
@@ -147,7 +148,14 @@ export class SetupWizard extends Doc {
           return;
         }
         const coaList = getCOAList();
-        const coa = coaList.find(({ countryCode }) => countryCode === code);
+        const language = (this.fyo.store.language || 'en')
+          .toLowerCase()
+          .split(/[-_]/)[0];
+        const coa = coaList.find(
+          (chart) =>
+            chart.countryCode === code &&
+            (!chart.language || chart.language === language)
+        );
         return coa?.name ?? coaList[0].name;
       },
       dependsOn: ['country'],

@@ -1,3 +1,4 @@
+import { getAccountLabel } from 'src/utils/accountLabel';
 import { Fyo, t } from 'fyo';
 import { cloneDeep } from 'lodash';
 import { DateTime } from 'luxon';
@@ -83,7 +84,7 @@ export abstract class AccountReport extends LedgerReport {
             rawValue: '',
             width: c.width,
             align: 'left',
-          } as ReportCell)
+          }) as ReportCell
       ),
     };
   }
@@ -116,7 +117,7 @@ export abstract class AccountReport extends LedgerReport {
 
   getRowFromAccountListNode(al: AccountListNode) {
     const nameCell = {
-      value: al.name,
+      value: getAccountLabel(al.name),
       rawValue: al.name,
       align: 'left',
       width: ACC_NAME_WIDTH,

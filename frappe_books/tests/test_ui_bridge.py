@@ -19,9 +19,19 @@ class IntegrationTestUiBridge(IntegrationTestCase):
 
 	def test_account_crud_keeps_frappe_tree_indices(self):
 		name = unique_name("UI Tree Account")
+		parent = make_account("UI Tree Root")
+		parent.is_group = 1
+		parent.save()
 		self.bridge.insert(
 			"Account",
-			{"name": name, "rootType": "Asset", "isGroup": False, "lft": 0, "rgt": 0},
+			{
+				"name": name,
+				"rootType": "Asset",
+				"isGroup": False,
+				"parentAccount": parent.name,
+				"lft": 0,
+				"rgt": 0,
+			},
 		)
 		account = frappe.get_doc("Books Account", name)
 		self.assertGreater(account.lft, 0)

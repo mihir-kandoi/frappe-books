@@ -144,8 +144,9 @@ export class Payment extends Transactional {
 
       if (refDoc?.party !== this.party) {
         throw new ValidationError(
-          t`${refDoc.name!} party ${refDoc.party!} is different from ${this
-            .party!}`
+          t`${refDoc.name!} party ${refDoc.party!} is different from ${
+            this.party!
+          }`
         );
       }
     }
@@ -261,7 +262,7 @@ export class Payment extends Transactional {
       }
     }
 
-    type Summary = typeof taxes[string][string] & { idx: number };
+    type Summary = (typeof taxes)[string][string] & { idx: number };
     const taxArr: Summary[] = [];
     let idx = 0;
     for (const payment_account in taxes) {
@@ -306,9 +307,12 @@ export class Payment extends Transactional {
     }
   }
 
-  async validateReferenceOutstanding() {
+  async getReferenceOutstandingAmount() {
     let outstandingAmount = this.fyo.pesa(0);
     for (const row of this.for ?? []) {
+      if (!row.referenceType || !row.referenceName) {
+        continue;
+      }
       const referenceDoc = (await this.fyo.doc.getDoc(
         row.referenceType as string,
         row.referenceName as string
@@ -318,7 +322,11 @@ export class Payment extends Transactional {
         referenceDoc.outstandingAmount?.abs() ?? 0
       );
     }
+    return outstandingAmount;
+  }
 
+  async validateReferenceOutstanding() {
+    const outstandingAmount = await this.getReferenceOutstandingAmount();
     const amount = this.amount as Money;
 
     if (amount.gt(0) && amount.lte(outstandingAmount)) {
@@ -373,6 +381,7 @@ export class Payment extends Transactional {
 
   async beforeSync(): Promise<void> {
     await super.beforeSync();
+    const totalAmount = await this.getReferenceOutstandingAmount();
 
     for (const row of this.for ?? []) {
       if (!this.fyo.singles.AccountingSettings?.enablePartialPayment) {
@@ -380,7 +389,6 @@ export class Payment extends Transactional {
           ? (this.amount as Money)
           : (this.amountPaid as Money);
 
-        const totalAmount = this.totalAmount as Money;
         if (amount.lt(totalAmount)) {
           if (this.writeoff?.isZero()) {
             this.amount = totalAmount;
@@ -626,25 +634,13 @@ export class Payment extends Transactional {
         return;
       }
 
-      if (!this.totalAmount) {
-        this.totalAmount = this.fyo.pesa(0);
-        for (const row of this.for ?? []) {
-          const referenceDoc = (await this.fyo.doc.getDoc(
-            row.referenceType as string,
-            row.referenceName as string
-          )) as Invoice;
+      const totalAmount = await this.getReferenceOutstandingAmount();
 
-          this.totalAmount = (this.totalAmount as Money).add(
-            referenceDoc.outstandingAmount?.abs() ?? this.fyo.pesa(0)
-          );
-        }
-      }
-
-      if ((value as Money).gt(this.totalAmount as Money)) {
+      if ((value as Money).gt(totalAmount)) {
         this.amount = this.initialAmount;
         throw new ValidationError(
           this.fyo.t`Payment amount cannot exceed ${this.fyo.format(
-            this.totalAmount,
+            totalAmount,
             'Currency'
           )}.`
         );

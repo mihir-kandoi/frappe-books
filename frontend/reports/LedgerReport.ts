@@ -75,7 +75,7 @@ export abstract class LedgerReport extends Report {
     return map;
   }
 
-  async _setRawData() {
+  async _setRawData(queryFilters?: QueryFilter) {
     const fields = [
       'name',
       'account',
@@ -89,7 +89,7 @@ export abstract class LedgerReport extends Report {
       'reverts',
     ];
 
-    const filters = await this._getQueryFilters();
+    const filters = queryFilters ?? (await this._getQueryFilters());
     const entries = (await this.fyo.db.getAllRaw(
       ModelNameEnum.AccountingLedgerEntry,
       {

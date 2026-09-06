@@ -19,6 +19,12 @@ await build({
       export { models } from './models';
       export { BalanceSheet } from './reports/BalanceSheet/BalanceSheet';
       export { ProfitAndLoss } from './reports/ProfitAndLoss/ProfitAndLoss';
+      export { GeneralLedger } from './reports/GeneralLedger/GeneralLedger';
+      export { TrialBalance } from './reports/TrialBalance/TrialBalance';
+      export { useTranslations } from './src/web/translations';
+      export { getAccountLabel } from './src/utils/accountLabel';
+      export { t, setLanguageMapOnTranslationString } from './fyo/utils/translation';
+      export { StockQueue } from './models/inventory/stockQueue';
       export { getJsonData, getCsvData } from './reports/commonExporter';
       export { matchesStatus } from './src/utils/statusFilter';
       export * from './src/utils/filterQuery';
@@ -53,6 +59,13 @@ export const {
   models,
   BalanceSheet,
   ProfitAndLoss,
+  GeneralLedger,
+  TrialBalance,
+  StockQueue,
+  useTranslations,
+  getAccountLabel,
+  t,
+  setLanguageMapOnTranslationString,
   getJsonData,
   getCsvData,
   matchesStatus,

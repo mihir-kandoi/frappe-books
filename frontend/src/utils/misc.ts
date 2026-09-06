@@ -1,5 +1,5 @@
 import { Fyo } from 'fyo';
-import { translateSchema } from 'fyo/utils/translation';
+import { translateSchema, TranslationString } from 'fyo/utils/translation';
 import { cloneDeep } from 'lodash';
 import { DateTime } from 'luxon';
 import { SetupWizard } from 'models/baseModels/SetupWizard/SetupWizard';
@@ -58,7 +58,9 @@ export function getDatesAndPeriodList(period: PeriodKey): {
   };
 }
 
-export function getSetupWizardDoc(languageMap?: LanguageMap) {
+export function getSetupWizardDoc(
+  languageMap: LanguageMap | undefined = TranslationString.prototype.languageMap
+) {
   /**
    * This is used cause when setup wizard is running
    * the database isn't yet initialized.
@@ -139,7 +141,7 @@ export function getCreateFiltersFromListViewFilters(filters: QueryFilter) {
   const createFilters: Record<string, string | number | boolean | null> = {};
 
   for (const key in filters) {
-    let value: typeof filters[string] | undefined | number = filters[key];
+    let value: (typeof filters)[string] | undefined | number = filters[key];
 
     if (Array.isArray(value) && value[0] === 'in' && Array.isArray(value[1])) {
       value = value[1].filter((v) => v !== 'Both')[0];

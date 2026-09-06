@@ -1,5 +1,6 @@
 import { Fyo } from 'fyo';
 import { Doc } from 'fyo/model/doc';
+import { ValidationError } from 'fyo/utils/errors';
 import {
   DefaultMap,
   FiltersMap,
@@ -35,13 +36,8 @@ export class Account extends Doc {
   }
 
   required: RequiredMap = {
-    /**
-     * Added here cause rootAccounts don't have parents
-     * they are created during initialization. if this is
-     * added to the schema it will cause NOT NULL errors
-     */
-
-    parentAccount: () => !!this.fyo.singles?.AccountingSettings?.setupComplete,
+    parentAccount: () =>
+      !this.isGroup && !!this.fyo.singles?.AccountingSettings?.setupComplete,
   };
 
   static defaults: DefaultMap = {
@@ -61,6 +57,12 @@ export class Account extends Doc {
 
     const account = await this.fyo.db.get('Account', this.parentAccount);
     this.accountType = account.accountType as AccountType;
+  }
+
+  async beforeDelete() {
+    if (!this.parentAccount) {
+      throw new ValidationError(this.fyo.t`Root accounts cannot be deleted.`);
+    }
   }
 
   static getListViewSettings(): ListViewSettings {

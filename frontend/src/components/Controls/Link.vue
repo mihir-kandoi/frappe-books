@@ -1,5 +1,6 @@
 <script>
 import { t } from 'fyo';
+import { getAccountLabel } from 'src/utils/accountLabel';
 import { fyo } from 'src/initFyo';
 import { fuzzyMatch } from 'src/utils';
 import { setLinkOnParent } from 'src/utils/doc';
@@ -44,7 +45,7 @@ export default {
       const target = this.getTargetSchemaName();
       const linkDisplayField = fyo.schemaMap[target ?? '']?.linkDisplayField;
       if (!linkDisplayField) {
-        return (this.linkValue = value);
+        return (this.linkValue = target === 'Account' ? getAccountLabel(value || '') : value);
       }
 
       const linkDoc = await this.doc?.loadAndGetLink(fieldname);
@@ -76,7 +77,11 @@ export default {
 
       return (this.results = results
         .map((r) => {
-          const option = { label: r[schema.titleField], value: r.name };
+          const label = r[schema.titleField] || r.name;
+          const option = {
+            label: schemaName === 'Account' ? getAccountLabel(label) : label,
+            value: r.name,
+          };
           if (this.df.groupBy) {
             option.group = r[this.df.groupBy];
           }

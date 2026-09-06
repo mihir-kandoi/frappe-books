@@ -1,6 +1,7 @@
 <template>
   <div class="flex flex-col h-full">
     <PageHeader :title="t`Chart of Accounts`">
+      <Button @click="addRootGroup">{{ t`Add Root Group` }}</Button>
       <Button v-if="!isAllExpanded" @click="expand">{{ t`Expand` }}</Button>
       <Button v-if="!isAllCollapsed" @click="collapse">{{
         t`Collapse`
@@ -26,12 +27,12 @@
             type="button"
             class="min-w-0 flex-1 self-stretch truncate rounded-3 bg-transparent text-start text-base text-ink-gray-8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-outline-gray-3"
             :class="node.isGroup ? 'font-medium' : 'font-normal'"
-            :title="String(node.name)"
+            :title="getAccountLabel(String(node.name))"
             @keydown.enter.stop
             @keydown.space.stop
             @click.stop="onClick(node as AccountItem)"
           >
-            {{ node.name }}
+            {{ getAccountLabel(String(node.name)) }}
           </button>
         </template>
         <template #item-suffix="{ node }">
@@ -107,6 +108,7 @@
 </template>
 <script lang="ts">
 import { t } from 'fyo';
+import { getAccountLabel } from 'src/utils/accountLabel';
 import {
   Dialog as FrappeDialog,
   Dropdown as FrappeDropdown,
@@ -217,6 +219,7 @@ export default defineComponent({
     docsPathRef.value = '';
   },
   methods: {
+    getAccountLabel,
     getAccountActions(account: AccountItem): DropdownOptions {
       const actions: DropdownOptions = [];
       if (account.isGroup) {
@@ -232,7 +235,7 @@ export default defineComponent({
         );
       }
 
-      actions.push({
+      if (account.parentAccount) actions.push({
         label: account.isGroup ? t`Delete Group` : t`Delete Account`,
         theme: 'red',
         onClick: () => this.deleteAccount(account),
@@ -303,7 +306,7 @@ export default defineComponent({
       });
       const nodes = records.map((record) => ({
         ...record,
-        label: record.name,
+        label: getAccountLabel(String(record.name)),
         expanded: false,
         children: [],
       })) as unknown as AccountItem[];
@@ -352,7 +355,20 @@ export default defineComponent({
 
       await commongDocDelete(doc, false);
     },
+    async addRootGroup() {
+      const doc = fyo.doc.getNewDoc(ModelNameEnum.Account, { isGroup: true });
+      doc.once('afterSync', () => this.fetchAccounts());
+      await openQuickEdit({ doc });
+    },
     async canDeleteAccount(account: AccountItem) {
+      if (!account.parentAccount) {
+        await showDialog({
+          type: 'error',
+          title: t`Cannot Delete Account`,
+          detail: t`Root accounts cannot be deleted.`,
+        });
+        return false;
+      }
       if (account.isGroup && !account.children?.length) {
         await this.fetchChildren(account);
       }
@@ -419,7 +435,7 @@ export default defineComponent({
           (child) => {
             const existing = previous.get(child.name);
             return existing
-              ? Object.assign(existing, { label: child.name })
+              ? Object.assign(existing, { label: getAccountLabel(child.name) })
               : child;
           }
         );
@@ -438,7 +454,7 @@ export default defineComponent({
       });
 
       return children.map((d) => {
-        d.label = d.name;
+        d.label = getAccountLabel(String(d.name));
         d.expanded = false;
         d.addingAccount = false;
         d.addingGroupAccount = false;

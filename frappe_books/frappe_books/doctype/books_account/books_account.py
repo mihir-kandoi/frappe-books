@@ -46,6 +46,7 @@ class BooksAccount(NestedSet):
 	# end: auto-generated types
 
 	_DOCTYPE_NAME = "Books Account"
+	allow_root_deletion = False
 
 	def before_validate(self):
 		if not self.parent_books_account:

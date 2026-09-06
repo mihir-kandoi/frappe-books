@@ -16,16 +16,20 @@ export class StockQueue {
      * Stock value maintained is based on the stock queue
      * ∴ FIFO by default. This returns FIFO valuation rate.
      */
-    const valuation = this.value / this.quantity;
-    if (Number.isNaN(valuation)) {
+    if (!this.quantity) {
       return 0;
     }
 
-    return valuation;
+    return this.value / this.quantity;
   }
 
   inward(rate: number, quantity: number): null | number {
-    if (quantity <= 0 || rate < 0) {
+    if (
+      !Number.isFinite(quantity) ||
+      !Number.isFinite(rate) ||
+      quantity <= 0 ||
+      rate < 0
+    ) {
       return null;
     }
 
@@ -51,7 +55,27 @@ export class StockQueue {
   }
 
   outward(quantity: number): null | number {
-    if (this.quantity < quantity || quantity <= 0) {
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      return null;
+    }
+
+    // Decimal stock quantities can differ by one floating-point rounding step.
+    const depleted =
+      Math.abs(this.quantity - quantity) <=
+      Number.EPSILON * Math.max(this.quantity, quantity);
+    if (depleted && this.quantity > 0) {
+      const value = this.queue.reduce(
+        (sum, row) => sum + row.rate * row.quantity,
+        0
+      );
+      const rate = value / this.quantity;
+      this.quantity = 0;
+      this.value = 0;
+      this.movingAverage = 0;
+      this.queue = [];
+      return rate;
+    }
+    if (this.quantity < quantity) {
       return null;
     }
 

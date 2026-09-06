@@ -97,7 +97,7 @@ export class ProfitAndLoss extends AccountReport {
       return this.getIncomeOrExpenseRows(
         expenseRoots,
         expenseRows,
-        t`Total Income (Credit)`
+        t`Total Expense (Debit)`
       );
     }
 

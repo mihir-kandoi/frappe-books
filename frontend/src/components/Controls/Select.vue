@@ -18,6 +18,7 @@
     :open="dropdownVisible"
     :options="options"
     :label="showLabel ? df.label : undefined"
+    :aria-label="showLabel ? undefined : df.label"
     :description="showLabel ? df.sub_label : undefined"
     :placeholder="inputPlaceholder"
     :required="isRequired"

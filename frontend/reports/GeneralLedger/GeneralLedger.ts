@@ -32,6 +32,7 @@ export class GeneralLedger extends LedgerReport {
   referenceType: ReferenceType = 'All';
   groupBy: 'none' | 'party' | 'account' | 'referenceName' = 'none';
   _rawData: LedgerEntry[] = [];
+  _openingData: LedgerEntry[] = [];
 
   constructor(fyo: Fyo) {
     super(fyo);
@@ -73,7 +74,7 @@ export class GeneralLedger extends LedgerReport {
       date: null,
       debit: totalDebit,
       credit: totalCredit,
-      balance: totalDebit - totalCredit,
+      balance: this._getOpeningBalance() + totalDebit - totalCredit,
       referenceType: '',
       referenceName: '',
       party: '',
@@ -192,51 +193,111 @@ export class GeneralLedger extends LedgerReport {
     });
   }
 
+  override async _setRawData() {
+    const filters = this._getQueryFilters();
+    delete filters.date;
+    if (this.toDate) {
+      filters.date = [
+        '<',
+        DateTime.fromISO(String(this.toDate)).plus({ days: 1 }).toISODate(),
+      ];
+    }
+    await super._setRawData(filters);
+    const from = this.fromDate ? String(this.fromDate) : '';
+    this._openingData = this._rawData.filter(
+      (entry) => entry.date!.toISOString().slice(0, 10) < from
+    );
+    this._rawData = this._rawData.filter(
+      (entry) => entry.date!.toISOString().slice(0, 10) >= from
+    );
+  }
+
+  override _getGroupedMap(sort: boolean): GroupedMap {
+    const map = super._getGroupedMap(sort);
+    if (this.groupBy === 'none') {
+      return new Map([['', this._rawData.slice()]]);
+    }
+    for (const entry of this._openingData) {
+      const key = entry[this.groupBy];
+      if (!map.has(key)) {
+        map.set(key, []);
+      }
+    }
+    return map;
+  }
+
+  _getOpeningBalance() {
+    return this._openingData.reduce(
+      (balance, entry) => balance + entry.debit! - entry.credit!,
+      0
+    );
+  }
+
+  _getOpeningBalances() {
+    const balances = new Map<string, number>();
+    for (const entry of this._openingData) {
+      const key = this.groupBy === 'none' ? '' : entry[this.groupBy];
+      balances.set(
+        key,
+        (balances.get(key) ?? 0) + entry.debit! - entry.credit!
+      );
+    }
+    return balances;
+  }
+
   _getTotalsAndSetBalance(map: GroupedMap) {
+    const openings = this._getOpeningBalances();
     let totalDebit = 0;
     let totalCredit = 0;
-
-    for (const key of map.keys()) {
-      let balance = 0;
+    for (const [key, entries] of map) {
+      const opening = openings.get(key) ?? 0;
+      let balance = opening;
       let debit = 0;
       let credit = 0;
-
-      for (const entry of map.get(key)!) {
+      // Balances follow posting order even when the newest entries display first.
+      const chronological = this.ascending
+        ? entries
+        : entries.slice().reverse();
+      for (const entry of chronological) {
         debit += entry.debit!;
         credit += entry.credit!;
-
-        const diff = entry.debit! - entry.credit!;
-        balance += diff;
+        balance += entry.debit! - entry.credit!;
         entry.balance = balance;
       }
-
-      /**
-       * Total row incase groupBy is used
-       */
-      if (this.groupBy !== 'none') {
-        map.get(key)?.push({
-          name: -1, // Italics
-          account: t`Total`,
-          date: null,
-          debit,
-          credit,
-          balance: debit - credit,
-          referenceType: '',
-          referenceName: '',
-          party: '',
-          reverted: false,
-          reverts: '',
-        });
+      if (this.fromDate) {
+        const row = this._getBalanceEntry(t`Opening`, opening);
+        if (this.groupBy === 'account') row.account = t`Opening: ${key}`;
+        else if (this.groupBy !== 'none') row[this.groupBy] = key;
+        entries.unshift(row);
       }
-
-      /**
-       * Total debit and credit for the final row
-       */
+      if (this.groupBy !== 'none') {
+        entries.push(this._getBalanceEntry(t`Total`, balance, debit, credit));
+      }
       totalDebit += debit;
       totalCredit += credit;
     }
-
     return { totalDebit, totalCredit };
+  }
+
+  _getBalanceEntry(
+    account: string,
+    balance: number,
+    debit = 0,
+    credit = 0
+  ): LedgerEntry {
+    return {
+      name: -1,
+      account,
+      date: null,
+      debit,
+      credit,
+      balance,
+      referenceType: '',
+      referenceName: '',
+      party: '',
+      reverted: false,
+      reverts: '',
+    };
   }
 
   _getQueryFilters(): QueryFilter {
