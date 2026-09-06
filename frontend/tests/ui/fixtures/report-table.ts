@@ -24,6 +24,8 @@ fyo.singles.InventorySettings = {
 } as any;
 function makeReport(ReportClass = StockLedger) {
   const report = new ReportClass(fyo);
+  report.setDefaultFilters();
+  report.filters = report.getFilters();
   report.columns = report.getColumns();
   report.reportData = Array.from({ length: 51 }, (_, index) => {
     const values: Record<string, string> = {

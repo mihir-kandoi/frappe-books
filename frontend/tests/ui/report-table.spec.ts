@@ -222,6 +222,114 @@ test('tooltips preserve group folding and update when cell values change', async
   await expect(text).not.toHaveAttribute('tabindex', '0');
 });
 
+test('changing report filters resets the page even when the row count is unchanged', async ({
+  page,
+}) => {
+  for (const [field, value] of [
+    ['referenceType', 'Shipment'],
+    ['item', 'Keyboard'],
+    ['fromDate', '2026-09-01'],
+    ['groupBy', 'item'],
+    ['ascending', true],
+    ['item', null],
+  ]) {
+    await page
+      .getByRole('button', { name: 'Next page', exact: true })
+      .click();
+    await expect(
+      page.getByRole('spinbutton', { name: 'Page number' })
+    ).toHaveValue('2');
+    await page.evaluate(
+      async ([field, value]) => {
+        await (window as any).reportFixture.state.report.set(
+          field,
+          value,
+          false
+        );
+      },
+      [field, value]
+    );
+    await expect(
+      page.getByRole('spinbutton', { name: 'Page number' })
+    ).toHaveValue('1');
+    await expect(itemText(page)).toHaveText(
+      await page.evaluate(() => (window as any).reportFixture.itemName)
+    );
+    await expect(page.locator('[data-slot="list-row"]')).toHaveCount(50);
+  }
+});
+
+test('filter resets preserve page size and unchanged filters preserve the page', async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    const report = (window as any).reportFixture.state.report;
+    report.reportData = Array.from(
+      { length: 151 },
+      () => report.reportData[0]
+    );
+  });
+  await page.getByRole('button', { name: '100', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Next page', exact: true })
+    .click();
+  await page.evaluate(async () => {
+    await (window as any).reportFixture.state.report.set(
+      'item',
+      'Keyboard',
+      false
+    );
+  });
+  await expect(
+    page.getByRole('spinbutton', { name: 'Page number' })
+  ).toHaveValue('1');
+  await expect(page.locator('[data-slot="list-row"]')).toHaveCount(100);
+
+  await page
+    .getByRole('button', { name: 'Next page', exact: true })
+    .click();
+  await page.evaluate(async () => {
+    const report = (window as any).reportFixture.state.report;
+    await report.set('item', 'Keyboard', false);
+    report.filters = report.getFilters();
+    report.reportData = [...report.reportData];
+  });
+  await expect(
+    page.getByRole('spinbutton', { name: 'Page number' })
+  ).toHaveValue('2');
+});
+
+test('filters with fewer or no results return to page one and recover when cleared', async ({
+  page,
+}) => {
+  const rows = await page.evaluate(
+    () => (window as any).reportFixture.state.report.reportData
+  );
+  for (const count of [3, 0]) {
+    await page
+      .getByRole('button', { name: 'Next page', exact: true })
+      .click();
+    await page.evaluate(async (count) => {
+      const report = (window as any).reportFixture.state.report;
+      await report.set('item', 'Keyboard', false);
+      report.reportData = report.reportData.slice(0, count);
+    }, count);
+    await expect(
+      page.getByRole('spinbutton', { name: 'Page number' })
+    ).toHaveValue('1');
+    await expect(page.locator('[data-slot="list-row"]')).toHaveCount(count);
+    await expect(
+      page.getByRole('button', { name: 'Next page', exact: true })
+    ).toBeDisabled();
+    await page.evaluate(async (rows) => {
+      const report = (window as any).reportFixture.state.report;
+      await report.set('item', null, false);
+      report.reportData = rows;
+    }, rows);
+    await expect(page.locator('[data-slot="list-row"]')).toHaveCount(50);
+  }
+});
+
 function handle(page: Page, name: string) {
   return page.getByRole('separator', {
     name: `Resize ${name} column`,

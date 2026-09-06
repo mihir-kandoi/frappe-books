@@ -52,6 +52,7 @@
     <!-- Pagination Footer -->
     <div v-if="report.usePagination" class="mt-auto flex-shrink-0">
       <Paginator
+        ref="paginator"
         :item-count="report?.reportData?.length ?? 0"
         class="px-4"
         @index-change="setPageIndices"
@@ -69,6 +70,7 @@ import {
   ListRow as FrappeListRow,
   ListRows as FrappeListRows,
 } from 'frappe-ui/list';
+import { isEqual } from 'lodash';
 import { isNumeric } from 'src/utils';
 import { languageDirectionKey } from 'src/utils/injectionKeys';
 import { defineComponent, inject } from 'vue';
@@ -120,6 +122,11 @@ export default defineComponent({
     },
   },
   watch: {
+    'report.filterMap'(filters, previousFilters) {
+      if (!isEqual(filters, previousFilters)) {
+        this.$refs.paginator?.setPageNo(1);
+      }
+    },
     'report.reportName'(name) {
       this.columnWidths = new ReportColumnWidths(name);
     },

@@ -103,7 +103,7 @@ export default defineComponent({
   },
   computed: {
     maxPages() {
-      return Math.ceil(this.itemCount / this.count);
+      return Math.max(1, Math.ceil(this.itemCount / this.count));
     },
     pageNumberWidth() {
       return `calc(${String(this.maxPages).length}ch + 1rem)`;
