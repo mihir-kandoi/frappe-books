@@ -9,7 +9,7 @@ from frappe.utils import add_days, getdate, now_datetime, nowdate
 
 from frappe_books.commerce.loyalty import expire_programs_and_points
 from frappe_books.commerce.pos_api import checkout, get_pos_context
-from frappe_books.frappe_books_sqlite.doctype.books_stock_movement.test_books_stock_movement import (
+from frappe_books.frappe_books.doctype.books_stock_movement.test_books_stock_movement import (
 	make_movement,
 )
 from frappe_books.inventory.stock import stock_quantity

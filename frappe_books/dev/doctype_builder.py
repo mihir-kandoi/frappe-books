@@ -9,7 +9,7 @@ from typing import Any
 
 Schema = dict[str, Any]
 
-MODULE = "Frappe Books SQLite"
+MODULE = "Frappe Books"
 DOCTYPE_OVERRIDES = {
 	"Account": "Books Account",
 	"AccountingLedgerEntry": "Books Ledger Entry",

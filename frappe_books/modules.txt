@@ -1,1 +1,1 @@
-Frappe Books SQLite
+Frappe Books

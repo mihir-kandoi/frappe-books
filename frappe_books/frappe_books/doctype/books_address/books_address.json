@@ -1,0 +1,158 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "autoname": "Prompt",
+ "creation": "2026-08-27 22:09:39.548985",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "address_line1",
+  "address_line2",
+  "city",
+  "country",
+  "state",
+  "postal_code",
+  "contacts_section_break_7",
+  "email_address",
+  "phone",
+  "fax",
+  "miscellaneous_section_break_11",
+  "address_display",
+  "pos"
+ ],
+ "fields": [
+  {
+   "description": "Address Line 1",
+   "fieldname": "address_line1",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Address Line 1",
+   "reqd": 1
+  },
+  {
+   "description": "Address Line 2",
+   "fieldname": "address_line2",
+   "fieldtype": "Data",
+   "label": "Address Line 2"
+  },
+  {
+   "description": "City / Town",
+   "fieldname": "city",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "City / Town",
+   "reqd": 1
+  },
+  {
+   "description": "Country",
+   "fieldname": "country",
+   "fieldtype": "Autocomplete",
+   "in_list_view": 1,
+   "label": "Country",
+   "reqd": 1
+  },
+  {
+   "description": "State",
+   "fieldname": "state",
+   "fieldtype": "Autocomplete",
+   "label": "State"
+  },
+  {
+   "description": "Postal Code",
+   "fieldname": "postal_code",
+   "fieldtype": "Data",
+   "label": "Postal Code"
+  },
+  {
+   "fieldname": "contacts_section_break_7",
+   "fieldtype": "Section Break",
+   "label": "Contacts"
+  },
+  {
+   "description": "Email Address",
+   "fieldname": "email_address",
+   "fieldtype": "Data",
+   "label": "Email Address"
+  },
+  {
+   "description": "Phone",
+   "fieldname": "phone",
+   "fieldtype": "Data",
+   "label": "Phone"
+  },
+  {
+   "fieldname": "fax",
+   "fieldtype": "Data",
+   "label": "Fax"
+  },
+  {
+   "fieldname": "miscellaneous_section_break_11",
+   "fieldtype": "Section Break",
+   "label": "Miscellaneous"
+  },
+  {
+   "fieldname": "address_display",
+   "fieldtype": "Text",
+   "label": "Address Display",
+   "read_only": 1
+  },
+  {
+   "description": "Place of Supply",
+   "fieldname": "pos",
+   "fieldtype": "Autocomplete",
+   "label": "Place of Supply"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-27 23:43:14.631880",
+ "modified_by": "Administrator",
+ "module": "Frappe Books",
+ "name": "Books Address",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Books Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Books User",
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

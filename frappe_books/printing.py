@@ -118,7 +118,7 @@ def ensure_print_formats() -> None:
 	for name, doctype in PRINT_FORMAT_DOCTYPES.items():
 		values = {
 			"doc_type": doctype,
-			"module": "Frappe Books SQLite",
+			"module": "Frappe Books",
 			"standard": "No",
 			"custom_format": 1,
 			"print_format_type": "Jinja",

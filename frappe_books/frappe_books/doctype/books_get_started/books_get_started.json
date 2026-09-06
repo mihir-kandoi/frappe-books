@@ -1,0 +1,146 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "creation": "2026-08-27 22:09:39.739487",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "onboarding_complete",
+  "company_setup",
+  "system_setup",
+  "print_setup",
+  "sales_item_created",
+  "purchase_item_created",
+  "customer_created",
+  "supplier_created",
+  "invoice_created",
+  "bill_created",
+  "chart_of_accounts_reviewed",
+  "opening_balance_checked",
+  "taxes_added"
+ ],
+ "fields": [
+  {
+   "default": "0",
+   "fieldname": "onboarding_complete",
+   "fieldtype": "Check",
+   "label": "Onboarding Complete"
+  },
+  {
+   "default": "0",
+   "fieldname": "company_setup",
+   "fieldtype": "Check",
+   "label": "Company Setup"
+  },
+  {
+   "default": "0",
+   "fieldname": "system_setup",
+   "fieldtype": "Check",
+   "label": "System Setup"
+  },
+  {
+   "default": "0",
+   "fieldname": "print_setup",
+   "fieldtype": "Check",
+   "label": "Print Setup"
+  },
+  {
+   "default": "0",
+   "fieldname": "sales_item_created",
+   "fieldtype": "Check",
+   "label": "Purchase Item Created"
+  },
+  {
+   "default": "0",
+   "fieldname": "purchase_item_created",
+   "fieldtype": "Check",
+   "label": "Sales Item Created"
+  },
+  {
+   "default": "0",
+   "fieldname": "customer_created",
+   "fieldtype": "Check",
+   "label": "Customer Created"
+  },
+  {
+   "default": "0",
+   "fieldname": "supplier_created",
+   "fieldtype": "Check",
+   "label": "Supplier Created"
+  },
+  {
+   "default": "0",
+   "fieldname": "invoice_created",
+   "fieldtype": "Check",
+   "label": "Invoice Created"
+  },
+  {
+   "default": "0",
+   "fieldname": "bill_created",
+   "fieldtype": "Check",
+   "label": "Bill Created"
+  },
+  {
+   "default": "0",
+   "fieldname": "chart_of_accounts_reviewed",
+   "fieldtype": "Check",
+   "label": "Chart Of Accounts Reviewed"
+  },
+  {
+   "default": "0",
+   "fieldname": "opening_balance_checked",
+   "fieldtype": "Check",
+   "label": "Opening Balances"
+  },
+  {
+   "default": "0",
+   "fieldname": "taxes_added",
+   "fieldtype": "Check",
+   "label": "Add Taxes"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-08-27 23:43:15.102886",
+ "modified_by": "Administrator",
+ "module": "Frappe Books",
+ "name": "Books Get Started",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Books Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Books User"
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
