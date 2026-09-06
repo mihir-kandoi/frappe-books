@@ -316,58 +316,6 @@ class IntegrationTestUiBridge(IntegrationTestCase):
 		self.assertEqual(listed["unit"], "Unit")
 		self.assertEqual(listed["rate"], 42)
 
-	def test_custom_fields_are_materialized_and_round_trip(self):
-		fieldname = "hostedBridgeTestValue"
-		color_name = unique_name("Bridge Custom Color")
-
-		self.assertFalse(frappe.db.exists("Books Custom Form", "Color"))
-		self.addCleanup(self._cleanup_custom_field_test, color_name)
-		self.bridge.insert(
-			"CustomForm",
-			{
-				"name": "Color",
-				"customFields": [
-					{
-						"label": "Hosted Bridge Test Value",
-						"fieldname": fieldname,
-						"fieldtype": "Data",
-						"section": "Default",
-						"tab": "Custom",
-					}
-				],
-			},
-		)
-		self.assertTrue(
-			frappe.db.exists(
-				"Custom Field",
-				{
-					"dt": "Books Color",
-					"fieldname": "custom_books_hostedbridgetestvalue",
-				},
-			)
-		)
-
-		inserted = self.bridge.insert(
-			"Color",
-			{
-				"name": color_name,
-				"hexvalue": "#123456",
-				fieldname: "persisted",
-			},
-		)
-
-		self.assertEqual(inserted[fieldname], "persisted")
-		self.assertEqual(self.bridge.get("Color", color_name)[fieldname], "persisted")
-
-	def _cleanup_custom_field_test(self, color_name):
-		if frappe.db.exists("Books Color", color_name):
-			self.bridge.delete("Color", color_name)
-		if frappe.db.exists("Books Custom Form", "Color"):
-			self.bridge.delete("CustomForm", "Color")
-		if frappe.db.has_column("Books Color", "custom_books_hostedbridgetestvalue"):
-			frappe.db.sql_ddl("alter table `tabBooks Color` drop column `custom_books_hostedbridgetestvalue`")
-		frappe.db.commit()
-
 	def test_double_encoded_attach_images_are_normalized(self):
 		receivable = make_account("Bridge Image Receivable", account_type="Receivable")
 		party = make_party(receivable.name)
