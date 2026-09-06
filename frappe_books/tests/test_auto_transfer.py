@@ -88,7 +88,11 @@ class IntegrationTestAutoTransfer(IntegrationTestCase):
 		profile = None
 		if use_profile:
 			profile = frappe.get_doc(
-				{"doctype": "Books Pos Profile", "name": unique_name("POS Profile"), "inventory": location.name}
+				{
+					"doctype": "Books Pos Profile",
+					"name": unique_name("POS Profile"),
+					"inventory": location.name,
+				}
 			).insert()
 		frappe.db.set_single_value("Books Pos Settings", "pos_profile", profile.name if profile else "")
 		frappe.db.set_single_value("Books Pos Settings", "inventory", "Stores" if profile else location.name)
