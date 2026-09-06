@@ -8,6 +8,7 @@ from frappe.tests import IntegrationTestCase
 from frappe.utils import add_days, getdate, now_datetime, nowdate
 
 from frappe_books.commerce.loyalty import expire_programs_and_points
+from frappe_books.commerce.pos import transacted_amounts
 from frappe_books.commerce.pos_api import checkout, get_pos_context
 from frappe_books.frappe_books.doctype.books_stock_movement.test_books_stock_movement import (
 	make_movement,
@@ -21,6 +22,7 @@ from frappe_books.tests.accounting import (
 	make_party,
 	unique_name,
 )
+from frappe_books.ui_bridge.bespoke import BooksBespokeQueries
 
 
 class IntegrationTestCommerce(IntegrationTestCase):
@@ -309,6 +311,20 @@ class IntegrationTestPosCheckout(IntegrationTestCase):
 		self.assertEqual(invoice.grand_total, 150)
 		self.assertEqual(result["outstanding_amount"], 0)
 		self.assertEqual(len(result["payments"]), 1)
+
+	def test_interface_expected_amounts_match_closing_shift_totals(self):
+		start = now_datetime()
+		checkout(
+			cart=[{"item": self.item.name, "quantity": 2, "rate": 1}],
+			customer=self.party.name,
+			payments=[{"payment_method": "Cash", "amount": 150}],
+		)
+		end = add_days(now_datetime(), 1)
+
+		amounts = BooksBespokeQueries().pos_transacted_amount(start.isoformat(), end.isoformat())
+
+		self.assertEqual(amounts, transacted_amounts(start, end))
+		self.assertEqual(amounts["Cash"], 150)
 
 	def test_checkout_honors_custom_rate_when_enabled(self):
 		frappe.db.set_single_value("Books Pos Settings", "can_change_rate", 1)
