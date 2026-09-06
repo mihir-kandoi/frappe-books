@@ -7,13 +7,56 @@ import {
   AccountReport,
   convertAccountRootNodesToAccountList,
 } from 'reports/AccountReport';
-import { ReportData, RootTypeRow } from 'reports/types';
+import {
+  AccountNameValueMapMap,
+  GroupedMap,
+  ReportData,
+  RootTypeRow,
+  ValueMap,
+} from 'reports/types';
+import { isCredit } from 'models/helpers';
+import { QueryFilter } from 'utils/db/types';
 import { getMapFromList } from 'utils';
 
 export class BalanceSheet extends AccountReport {
   static title = t`Balance Sheet`;
   static reportName = 'balance-sheet';
   loading = false;
+
+  override async _getQueryFilters(): Promise<QueryFilter> {
+    const { toDate } = await this._getFromAndToDates();
+    return { date: ['<', toDate], reverted: false };
+  }
+
+  override async _getGroupedByDateRanges(
+    map: GroupedMap
+  ): Promise<AccountNameValueMapMap> {
+    const accounts = await this._setAndReturnAccountMap();
+    const result: AccountNameValueMapMap = new Map();
+    for (const [account, entries] of map) {
+      const values: ValueMap = new Map();
+      const direction = isCredit(accounts[account]?.rootType) ? -1 : 1;
+      const sorted = [...entries].sort(
+        (a, b) => a.date!.getTime() - b.date!.getTime()
+      );
+      let index = 0;
+      let balance = 0;
+      for (const range of this._dateRanges!) {
+        const end = range.toDate.toISODate();
+        while (
+          index < sorted.length &&
+          sorted[index].date!.toISOString().slice(0, 10) < end
+        ) {
+          const entry = sorted[index++];
+          balance +=
+            direction * ((entry.debit ?? 0) - (entry.credit ?? 0));
+        }
+        values.set(range, { balance });
+      }
+      result.set(account, values);
+    }
+    return result;
+  }
 
   get rootTypes(): AccountRootType[] {
     return [

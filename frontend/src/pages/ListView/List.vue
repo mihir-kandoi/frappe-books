@@ -87,6 +87,7 @@ import Button from 'src/components/Button.vue';
 import Paginator from 'src/components/Paginator.vue';
 import { fyo } from 'src/initFyo';
 import { isNumeric } from 'src/utils';
+import { matchesStatus } from 'src/utils/statusFilter';
 import { QueryFilter } from 'utils/db/types';
 import { PropType, defineComponent, toRaw } from 'vue';
 import ListCell from './ListCell.vue';
@@ -200,14 +201,10 @@ export default defineComponent({
       const baseFilters = cloneDeep(toRaw(this.filters));
       filters = cloneDeep({ ...baseFilters, ...filters });
 
-      let statusFilter: [string, string] | undefined;
-
-      if ('status' in filters) {
-        statusFilter = filters['status'] as [string, string];
-      }
-
       const isStatusFilter =
-        Array.isArray(statusFilter) && statusFilter[0] === 'like';
+        'status' in filters &&
+        !fyo.db.fieldMap[this.schemaName]?.status;
+      const statusFilter = filters.status;
       if (isStatusFilter) {
         delete filters['status'];
       }
@@ -223,24 +220,13 @@ export default defineComponent({
         orderBy,
       });
 
-      let filteredData = tableData;
-
-      if (isStatusFilter && statusFilter?.[1]) {
-        const lowercaseStatus = String(statusFilter[1]).toLowerCase();
-
-        const matchedNames = Object.entries(this.statusMap)
-          .filter((entry) => entry[1].toLowerCase() === lowercaseStatus)
-          .map((entry) => entry[0]);
-
-        filteredData = tableData.filter((row) =>
-          matchedNames.includes(String(row.name))
-        );
-      }
-
-      this.data = filteredData.map((d) => ({
+      const rows = tableData.map((d) => ({
         ...d,
         schema: fyo.schemaMap[this.schemaName],
       })) as RenderData[];
+      this.data = isStatusFilter
+        ? rows.filter((row) => matchesStatus(row, statusFilter))
+        : rows;
       this.$emit('updatedData', filters);
     },
     updateSelection(selectedItems: string[]) {
