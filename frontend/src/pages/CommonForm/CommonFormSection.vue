@@ -16,52 +16,62 @@
     </h2>
     <div v-if="!collapsed" class="grid gap-4 gap-x-8 grid-cols-2">
       <div
-        v-for="field of fields"
-        :key="field.fieldname"
-        :class="[
-          'min-w-0',
-          field.fieldtype === 'Table' ? 'col-span-2 text-base' : '',
-          field.fieldtype === 'AttachImage' ? 'row-span-2' : '',
-          field.fieldtype === 'Check'
-            ? 'min-h-8 w-full self-end'
-            : 'self-start w-full',
-          field.fieldname === 'termsAndConditions' ? 'col-span-2' : '',
-          field.invisible ? 'invisible' : '',
-        ]"
-        :style="field.invisible ? 'visibility: hidden;' : ''"
+        v-for="group in fieldGroups"
+        :key="group[0].fieldname"
+        :class="
+          group.length > 1
+            ? 'col-span-2 grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2'
+            : 'contents'
+        "
       >
-        <Table
-          v-if="field.fieldtype === 'Table'"
-          ref="fields"
-          :show-label="true"
-          :border="true"
-          :df="field"
-          :value="tableValue(doc[field.fieldname])"
-          @editrow="(doc: Doc) => $emit('editrow', doc)"
-          @change="(value: DocValue) => $emit('value-change', field, value)"
-          @row-change="
-            (field: Field, value: DocValue, parentfield: Field) =>
-              $emit('row-change', field, value, parentfield)
-          "
-        />
-        <FormControl
-          v-else
-          :ref="field.fieldname === 'name' ? 'nameField' : 'fields'"
-          class="w-full"
-          :size="field.fieldtype === 'AttachImage' ? 'form' : undefined"
-          :show-label="true"
-          :border="true"
-          :df="field"
-          :value="doc[field.fieldname]"
-          @editrow="(doc: Doc) => $emit('editrow', doc)"
-          @change="(value: DocValue) => $emit('value-change', field, value)"
-          @row-change="
-            (field: Field, value: DocValue, parentfield: Field) =>
-              $emit('row-change', field, value, parentfield)
-          "
-        />
-        <div v-if="errors?.[field.fieldname]" class="text-sm text-red-600 mt-1">
-          {{ errors[field.fieldname] }}
+        <div
+          v-for="field of group"
+          :key="field.fieldname"
+          :class="[
+            'min-w-0',
+            field.fieldtype === 'Table' ? 'col-span-2 text-base' : '',
+            field.fieldtype === 'AttachImage' ? 'row-span-2' : '',
+            field.fieldtype === 'Check'
+              ? ['min-h-8 w-full', group.length > 1 ? 'self-start' : 'self-end']
+              : 'self-start w-full',
+            field.fieldname === 'termsAndConditions' ? 'col-span-2' : '',
+            field.invisible ? 'invisible' : '',
+          ]"
+          :style="field.invisible ? 'visibility: hidden;' : ''"
+        >
+          <Table
+            v-if="field.fieldtype === 'Table'"
+            ref="fields"
+            :show-label="true"
+            :border="true"
+            :df="field"
+            :value="tableValue(doc[field.fieldname])"
+            @editrow="(doc: Doc) => $emit('editrow', doc)"
+            @change="(value: DocValue) => $emit('value-change', field, value)"
+            @row-change="
+              (field: Field, value: DocValue, parentfield: Field) =>
+                $emit('row-change', field, value, parentfield)
+            "
+          />
+          <FormControl
+            v-else
+            :ref="field.fieldname === 'name' ? 'nameField' : 'fields'"
+            class="w-full"
+            :size="field.fieldtype === 'AttachImage' ? 'form' : undefined"
+            :show-label="true"
+            :border="true"
+            :df="field"
+            :value="doc[field.fieldname]"
+            @editrow="(doc: Doc) => $emit('editrow', doc)"
+            @change="(value: DocValue) => $emit('value-change', field, value)"
+            @row-change="
+              (field: Field, value: DocValue, parentfield: Field) =>
+                $emit('row-change', field, value, parentfield)
+            "
+          />
+          <div v-if="errors?.[field.fieldname]" class="text-sm text-red-600 mt-1">
+            {{ errors[field.fieldname] }}
+          </div>
         </div>
       </div>
     </div>
@@ -96,6 +106,20 @@ export default defineComponent({
     return { collapsed: false } as {
       collapsed: boolean;
     };
+  },
+  computed: {
+    fieldGroups(): Field[][] {
+      const groups: Field[][] = [];
+      for (const field of this.fields) {
+        const previous = groups[groups.length - 1];
+        if (field.fieldtype === 'Check' && previous?.[0].fieldtype === 'Check') {
+          previous.push(field);
+        } else {
+          groups.push([field]);
+        }
+      }
+      return groups;
+    },
   },
   mounted() {
     focusOrSelectFormControl(this.doc, this.$refs.nameField);
