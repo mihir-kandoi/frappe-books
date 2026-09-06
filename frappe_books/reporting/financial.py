@@ -57,9 +57,10 @@ def profit_and_loss(filters=None):
 	filters = frappe._dict(filters or {})
 	entries = _ledger_entries(filters)
 	totals = _account_totals(entries)
+	root_types = _root_types(totals)
 	values = {}
 	for account, amounts in totals.items():
-		root_type = frappe.db.get_value("Books Account", account, "root_type")
+		root_type = root_types.get(account)
 		if root_type == "Income":
 			values[account] = {"amount": rounded(amounts["credit"] - amounts["debit"])}
 		elif root_type == "Expense":
@@ -100,10 +101,11 @@ def balance_sheet(filters=None):
 	filters = frappe._dict(filters or {})
 	filters.from_date = None
 	totals = _account_totals(_ledger_entries(filters))
+	root_types = _root_types(totals)
 	values = {}
 	period_profit = as_decimal(0)
 	for account, amounts in totals.items():
-		root_type = frappe.db.get_value("Books Account", account, "root_type")
+		root_type = root_types.get(account)
 		if root_type == "Asset":
 			values[account] = {"amount": rounded(amounts["debit"] - amounts["credit"])}
 		elif root_type in {"Liability", "Equity"}:
@@ -166,6 +168,15 @@ def _ledger_entries(filters, before_from=False):
 def _opening_balance(filters):
 	entries = _ledger_entries(filters, before_from=True)
 	return sum((as_decimal(row.debit) - as_decimal(row.credit) for row in entries), as_decimal(0))
+
+
+def _root_types(accounts):
+	if not accounts:
+		return {}
+	rows = frappe.get_all(
+		"Books Account", filters={"name": ["in", list(accounts)]}, fields=["name", "root_type"]
+	)
+	return {row.name: row.root_type for row in rows}
 
 
 def _account_totals(entries):
