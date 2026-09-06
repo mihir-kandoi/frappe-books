@@ -1,10 +1,12 @@
 import { fyo } from 'src/initFyo';
 import { computed, createApp, h, reactive, ref } from 'vue';
 import { FrappeUI, FrappeUIProvider } from 'frappe-ui';
+import { ConfigProvider } from 'reka-ui';
 import { createRouter, createMemoryHistory } from 'vue-router';
 import 'src/router';
 import ModernPOS from 'src/pages/POS/ModernPOS.vue';
 import ClassicPOS from 'src/pages/POS/ClassicPOS.vue';
+import Link from 'src/components/Controls/Link.vue';
 import { languageDirectionKey } from 'src/utils/injectionKeys';
 import { preparePOSData } from './pos-data';
 import 'src/styles/index.css';
@@ -21,6 +23,7 @@ async function mount() {
     coupons: [],
   });
   const state = reactive({
+    linkControl: null as Record<string, unknown> | null,
     modern: true,
     tableView: true,
     shiftOpen: true,
@@ -35,6 +38,30 @@ async function mount() {
   const coupon = fyo.doc.getNewDoc('AppliedCouponCodes');
   const app = createApp({
     render() {
+      if (state.linkControl) {
+        return h(ConfigProvider, { dir: state.linkControl.dir as 'ltr' | 'rtl' }, {
+          default: () =>
+            h(FrappeUIProvider, {}, {
+              default: () =>
+                h('main', { class: 'max-w-lg p-6' }, [
+                  h(Link, {
+                    border: true,
+                    df: {
+                      fieldtype: 'Link',
+                      fieldname: 'party',
+                      label: 'Customer',
+                      target: 'Party',
+                    },
+                    value: state.invoice.party,
+                    ...state.linkControl,
+                    onChange: (value: string) => {
+                      state.invoice.party = value;
+                    },
+                  }),
+                ]),
+            }),
+        });
+      }
       const modalProps = Object.fromEntries(
         [
           'Alert',

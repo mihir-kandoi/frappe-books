@@ -374,6 +374,67 @@ for (const dark of [false, true]) {
   });
 }
 
+for (const size of ['large', 'small']) {
+  test(`${size} link actions have equal top, bottom, and end insets`, async ({
+    page,
+  }) => {
+    for (const dir of ['ltr', 'rtl']) {
+      for (const showLabel of [false, true]) {
+        for (const showClearButton of [false, true]) {
+          await page.evaluate(
+            (props) => {
+              document.documentElement.dir = props.dir;
+              (window as any).posFixture.state.linkControl = props;
+            },
+            { size, showLabel, showClearButton, dir }
+          );
+          const options = page.getByRole('button', {
+            name: 'Open options',
+            exact: true,
+          });
+          const control = options.locator('..').locator('..');
+          await options.hover();
+          const bounds = (await control.boundingBox())!;
+          const button = (await options.boundingBox())!;
+          const top = button.y - bounds.y;
+          const bottom = bounds.y + bounds.height - button.y - button.height;
+          const end =
+            dir === 'ltr'
+              ? bounds.x + bounds.width - button.x - button.width
+              : button.x - bounds.x;
+          expect(button.width).toBe(24);
+          expect(button.height).toBe(24);
+          expect(top).toBe(size === 'large' ? 4 : 2);
+          expect(bottom).toBe(top);
+          expect(end).toBe(top);
+          const linked = control.getByRole('button', {
+            name: 'Open linked entry',
+            exact: true,
+          });
+          const linkedBounds = (await linked.boundingBox())!;
+          expect(linkedBounds.y).toBe(button.y);
+          const gap =
+            dir === 'ltr'
+              ? button.x - linkedBounds.x - linkedBounds.width
+              : linkedBounds.x - button.x - button.width;
+          expect(gap).toBe(2);
+          if (showLabel && !showClearButton) {
+            await page.screenshot({
+              animations: 'disabled',
+              path: test.info().outputPath(`${dir}-hover.png`),
+            });
+          }
+        }
+      }
+    }
+    await page
+      .getByRole('button', { name: 'Open options', exact: true })
+      .click();
+    await page.getByRole('option', { name: 'Aarav Shah', exact: true }).click();
+    await expect(page.getByRole('combobox')).toHaveValue('Aarav Shah');
+  });
+}
+
 async function actionStyle(button: Locator) {
   return button.evaluate(async (element) => {
     await Promise.all(
