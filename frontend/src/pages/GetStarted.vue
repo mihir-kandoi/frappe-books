@@ -52,7 +52,7 @@
               </div>
               <div
                 v-show="activeCard === item.key && !isCompleted(item)"
-                class="flex mt-2 overflow-hidden"
+                class="flex gap-2 mt-2 overflow-hidden"
               >
                 <Button
                   v-if="item.action"
@@ -65,7 +65,6 @@
                 <Button
                   v-if="item.documentation"
                   class="leading-tight text-base"
-                  :class="{ 'ms-4': item.action }"
                   @click="handleDocumentation(item)"
                 >
                   {{ t`Documentation` }}
