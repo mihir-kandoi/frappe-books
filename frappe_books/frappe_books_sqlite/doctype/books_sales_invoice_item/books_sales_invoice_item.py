@@ -20,6 +20,7 @@ class BooksSalesInvoiceItem(Document):
 		description: DF.Text | None
 		hsn_code: DF.Int
 		is_free_item: DF.Check
+		is_manual_rate: DF.Check
 		item: DF.Link
 		item_code: DF.Data | None
 		item_discount_amount: DF.Currency

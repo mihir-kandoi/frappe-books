@@ -29,7 +29,8 @@
   "stock_not_transferred",
   "is_free_item",
   "pricing_rule",
-  "serial_number"
+  "serial_number",
+  "is_manual_rate"
  ],
  "fields": [
   {
@@ -189,6 +190,13 @@
    "fieldname": "serial_number",
    "fieldtype": "Text",
    "label": "Serial Number"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_manual_rate",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Manual Rate"
   }
  ],
  "grid_page_length": 50,

@@ -26,7 +26,8 @@
   "item_discounted_total",
   "item_taxed_total",
   "hsn_code",
-  "stock_not_transferred"
+  "stock_not_transferred",
+  "is_manual_rate"
  ],
  "fields": [
   {
@@ -168,6 +169,13 @@
    "fieldtype": "Float",
    "label": "Stock Not Transferred",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_manual_rate",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Manual Rate"
   }
  ],
  "grid_page_length": 50,
