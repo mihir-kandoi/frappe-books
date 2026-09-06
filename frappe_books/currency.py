@@ -1,12 +1,18 @@
 """Currency metadata used for company number display defaults."""
 
-import frappe
+from decimal import Decimal
+
+from babel.numbers import get_currency_precision
 
 
 def currency_precision(currency: str) -> int:
-	if currency == "JPY":
-		return 0
-	units = frappe.db.get_value("Currency", currency, "fraction_units") if currency else None
-	if units is None:
-		return 2
-	return max(0, len(str(int(units))) - 1)
+	return get_currency_precision(currency)
+
+
+def currency_fraction_values(currency: str) -> dict[str, int | Decimal]:
+	"""Return fractional-unit defaults from Babel's CLDR currency data."""
+	precision = currency_precision(currency)
+	return {
+		"fraction_units": 10**precision if precision else 0,
+		"smallest_value": Decimal(1).scaleb(-precision),
+	}
