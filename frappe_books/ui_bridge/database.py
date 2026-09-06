@@ -304,7 +304,9 @@ class BooksDatabaseBridge:
 				):
 					value = _iso_datetime(value)
 				values[source_name] = _source_value(meta, target_name, value)
-		values["name"] = row.get("name")
+		# Numeric database IDs still identify text fields in the Books interface.
+		name = row.get("name")
+		values["name"] = str(name) if name is not None else None
 		if source_schema == "Payment" and row.get("payment_type") == "Pay":
 			if "account" in requested:
 				values["account"] = _source_value(meta, "payment_account", row.get("payment_account"))

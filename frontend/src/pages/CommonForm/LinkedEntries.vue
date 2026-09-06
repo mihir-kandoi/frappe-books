@@ -17,9 +17,17 @@
       </div>
     </div>
 
+    <p v-if="loading" role="status" class="p-4 text-sm text-ink-gray-6">
+      {{ t`Loading linked entries...` }}
+    </p>
+    <div v-else-if="loadFailed" role="alert" class="p-4 text-sm text-ink-gray-6">
+      <p class="mb-3">{{ t`Could not load linked entries. Please try again.` }}</p>
+      <Button @click="setLinkedEntries">{{ t`Try again` }}</Button>
+    </div>
+
     <!-- Linked Entry List -->
     <div
-      v-if="sequence.length"
+      v-else-if="sequence.length"
       class="w-full overflow-y-auto custom-scroll custom-scroll-thumb2 border-t border-outline-gray-1"
     >
       <div
@@ -169,8 +177,10 @@ export default defineComponent({
     return { shortcuts: inject(shortcutsKey) };
   },
   data() {
-    return { entries: {} } as {
+    return { entries: {}, loading: true, loadFailed: false } as {
       entries: Record<string, { collapsed: boolean; details: Record<string, unknown>[] }>;
+      loading: boolean;
+      loadFailed: boolean;
     };
   },
   computed: {
@@ -178,7 +188,7 @@ export default defineComponent({
       const seq: string[] = linkSequence.filter((s) => !!this.entries[s]?.details?.length);
 
       for (const s in this.entries) {
-        if (seq.includes(s)) {
+        if (seq.includes(s) || !this.entries[s].details.length) {
           continue;
         }
         seq.push(s);
@@ -188,8 +198,8 @@ export default defineComponent({
     },
   },
   async mounted() {
-    await this.setLinkedEntries();
     this.shortcuts?.set(COMPONENT_NAME, ['Escape'], () => this.$emit('close'));
+    await this.setLinkedEntries();
   },
   unmounted() {
     this.shortcuts?.delete(COMPONENT_NAME);
@@ -201,24 +211,32 @@ export default defineComponent({
       await routeTo(route);
     },
     async setLinkedEntries() {
-      const linkedEntries = await getLinkedEntries(this.doc);
-      for (const key in linkedEntries) {
-        const collapsed = false;
-        const entryNames = linkedEntries[key];
-        if (!entryNames.length) {
-          continue;
+      this.loading = true;
+      this.loadFailed = false;
+      this.entries = {};
+      try {
+        const linkedEntries = await getLinkedEntries(this.doc);
+        const entries: typeof this.entries = {};
+        for (const key in linkedEntries) {
+          const entryNames = linkedEntries[key];
+          if (!entryNames.length) {
+            continue;
+          }
+
+          const fields = linkEntryDisplayFields[key] ?? ['name'];
+          const details = await this.fyo.db.getAll(key, {
+            fields,
+            filters: { name: ['in', entryNames] },
+          });
+
+          entries[key] = { collapsed: false, details };
         }
-
-        const fields = linkEntryDisplayFields[key] ?? ['name'];
-        const details = await this.fyo.db.getAll(key, {
-          fields,
-          filters: { name: ['in', entryNames] },
-        });
-
-        this.entries[key] = {
-          collapsed,
-          details,
-        };
+        this.entries = entries;
+      } catch (error) {
+        console.error('Could not load linked entries', error);
+        this.loadFailed = true;
+      } finally {
+        this.loading = false;
       }
     },
   },

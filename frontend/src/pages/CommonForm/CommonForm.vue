@@ -103,7 +103,12 @@
     </template>
     <template #quickedit>
       <Transition name="quickedit">
-        <LinkedEntries v-if="showLinks && canShowLinks" :doc="doc" @close="showLinks = false" />
+        <LinkedEntries
+          v-if="showLinks && canShowLinks"
+          :key="`${doc.schemaName}.${doc.name}`"
+          :doc="doc"
+          @close="showLinks = false"
+        />
       </Transition>
       <Transition name="quickedit">
         <RowEditForm
