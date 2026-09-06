@@ -56,18 +56,35 @@ class PaymentController(SeriesNamingMixin, Document):
 def _validate_allocations(payment):
 	total = as_decimal(0)
 	for row in payment.payment_references:
-		if row.reference_type not in REFERENCE_DOCTYPES.values():
-			frappe.throw(_("Select a sales or purchase invoice reference."))
-		if not frappe.db.exists(row.reference_type, row.reference_name):
-			frappe.throw(_("Referenced invoice {0} does not exist.").format(row.reference_name))
-		outstanding = as_decimal(
-			frappe.db.get_value(row.reference_type, row.reference_name, "outstanding_amount")
-		)
-		if as_decimal(row.amount) <= 0 or as_decimal(row.amount) > abs(outstanding):
+		invoice = _referenced_invoice(payment, row)
+		amount = as_decimal(row.amount)
+		if amount <= 0 or amount > abs(as_decimal(invoice.outstanding_amount)):
 			frappe.throw(_("Allocated amount exceeds the invoice outstanding amount."))
-		total += as_decimal(row.amount)
+		total += amount
 	if total > as_decimal(payment.amount):
 		frappe.throw(_("Payment allocations cannot exceed the settled amount, including the write-off."))
+
+
+def _referenced_invoice(payment, row):
+	if row.reference_type not in REFERENCE_DOCTYPES.values():
+		frappe.throw(_("Select a sales or purchase invoice reference."))
+	invoice = frappe.db.get_value(
+		row.reference_type,
+		row.reference_name,
+		["docstatus", "party", "outstanding_amount"],
+		as_dict=True,
+	)
+	if not invoice:
+		frappe.throw(_("Referenced invoice {0} does not exist.").format(row.reference_name))
+	if invoice.docstatus != 1:
+		frappe.throw(_("Submit invoice {0} before allocating a payment to it.").format(row.reference_name))
+	if invoice.party != payment.party:
+		frappe.throw(
+			_("Invoice {0} belongs to {1}, not to {2}.").format(
+				row.reference_name, invoice.party, payment.party
+			)
+		)
+	return invoice
 
 
 def _apply_allocations(payment, reverse):
