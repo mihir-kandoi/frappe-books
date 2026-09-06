@@ -30,17 +30,17 @@ def transaction_stock_value(transaction):
 	if not items:
 		return as_decimal(0)
 	total = as_decimal(0)
-	for entry in computed_entries(frappe._dict(item=["in", items])):
+	for entry in computed_entries(items):
 		if entry["reference_type"] == transaction.doctype and entry["reference_name"] == transaction.name:
 			total += _entry_cost(entry)
 	return rounded(total)
 
 
-def computed_entries(filters, include_before=False):
-	"""Return stock ledger rows with FIFO value changes and running balances."""
+def computed_entries(items):
+	"""Return the stock ledger rows of the given items with FIFO value changes and balances."""
 	raw = frappe.get_all(
 		"Books Stock Ledger Entry",
-		filters=_ledger_filters(filters, include_before),
+		filters={"item": ["in", items]},
 		fields=STOCK_LEDGER_FIELDS,
 		order_by="date asc, creation asc",
 	)
@@ -101,20 +101,3 @@ def _consume_layers(queue, quantity, rate):
 
 def _valuation_rate(value, quantity):
 	return value / quantity if quantity else as_decimal(0)
-
-
-def _ledger_filters(filters, include_before):
-	db_filters = {}
-	for fieldname in ("item", "location", "batch", "serial_number", "reference_type", "reference_name"):
-		if filters.get(fieldname):
-			db_filters[fieldname] = filters[fieldname]
-	if not include_before:
-		if filters.get("from_date") and filters.get("to_date"):
-			db_filters["date"] = ["between", [filters.from_date, filters.to_date]]
-		elif filters.get("from_date"):
-			db_filters["date"] = [">=", filters.from_date]
-		elif filters.get("to_date"):
-			db_filters["date"] = ["<=", filters.to_date]
-	elif filters.get("to_date"):
-		db_filters["date"] = ["<=", filters.to_date]
-	return db_filters

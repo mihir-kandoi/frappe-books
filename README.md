@@ -13,16 +13,16 @@ The app currently targets only the Frappe Framework `develop` branch. It uses Fr
 - Books Vue interface on the standalone `/books` route
 - Standard Frappe DocTypes generated from the interface schemas
 - Authenticated Frappe APIs for document operations and aggregate queries
-- Setup wizard, standard chart of accounts, number series, roles, and defaults
+- Setup wizard, chart of accounts, number series, roles, and defaults
 - Sales invoices, purchase invoices, quotes, payments, journal entries, returns, and cancellation reversals
 - Quote-to-invoice, invoice-to-payment, and invoice-to-return Desk actions
 - Inventory ledger, FIFO valuation, stock movements, shipments, receipts, batches, and serial numbers
 - Automatic shipment or receipt creation from invoices
-- POS shifts and checkout, split-payment API support, pricing rules, coupons, and loyalty points
+- POS shifts and checkout, pricing rules, coupons, and loyalty points
 - India GST fields and GSTR-1/GSTR-2 reports, plus Swiss regional schema fields
-- General Ledger, Trial Balance, Profit and Loss, Balance Sheet, Stock Ledger, and Stock Balance reports
+- General Ledger, Trial Balance, Profit and Loss, Balance Sheet, Stock Ledger, and Stock Balance reports in the Books interface
 - Native Frappe print formats for invoices, quotes, payments, shipments, and receipts
-- Dashboard, POS, Books workspace, and Data Import/Data Export links
+- Books workspace and Data Import/Data Export links in Desk
 
 The browser handles downloads, file selection, and printing. Company data belongs to the current Frappe site. The app does not contain a local company-database selector, device telemetry, an updater, or an ERPNext device-sync client.
 
@@ -110,11 +110,7 @@ Vite writes the asset graph to `frappe_books/public/books`. The build then copie
 
 Bench uses the root `build` script during `bench build --app frappe_books`. This follows the same source-to-generated-output pattern as ERPNext Banking.
 
-The app also keeps these Desk routes for administration:
-
-- `/app/books` — Books workspace
-- `/app/books-dashboard` — dashboard
-- `/app/books-pos` — point of sale
+The app also keeps the `/app/books` Desk workspace for administration.
 
 Use standard Frappe **Data Import** and **Data Export** for CSV-based transfers.
 
@@ -149,7 +145,7 @@ yarn --cwd frontend typecheck
 yarn --cwd frontend test
 ```
 
-The integration suite covers the UI data layer, posting, reversals, payments, reports, stock, POS, setup, and printing.
+The integration suite covers the UI data layer, posting, reversals, payments, valuation, stock, POS, setup, and printing.
 Database regressions cover legacy date repair, native Date columns, singleton settings, and large numeric record names.
 Use a separate test site for each database and run the same suite against Frappe `develop`.
 GitHub Actions runs installation, migration, and the integration suite on all three databases against Frappe `develop`.

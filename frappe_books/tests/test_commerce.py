@@ -9,7 +9,6 @@ from frappe.utils import add_days, getdate, now_datetime, nowdate
 
 from frappe_books.commerce.loyalty import expire_programs_and_points
 from frappe_books.commerce.pos import transacted_amounts
-from frappe_books.commerce.pos_api import checkout, get_pos_context
 from frappe_books.frappe_books.doctype.books_stock_movement.test_books_stock_movement import (
 	make_movement,
 )
@@ -273,106 +272,46 @@ class IntegrationTestPosShift(IntegrationTestCase):
 		self.assertEqual(frappe.db.get_single_value("Books Pos Settings", "is_shift_open"), 0)
 		self.assertEqual(frappe.db.count("Books Journal Entry", {"user_remark": ["like", "POS % shift%"]}), 2)
 
-	def tearDown(self):
-		frappe.db.set_single_value("Books Pos Settings", "is_shift_open", 0)
-
-
-class IntegrationTestPosCheckout(IntegrationTestCase):
-	def setUp(self):
-		self.receivable = make_account("POS Receivable", account_type="Receivable")
-		self.cash = make_account("POS Checkout Cash", account_type="Cash")
-		self.income = make_account("POS Income", root_type="Income", account_type="Income Account")
-		self.expense = make_account("POS Expense", root_type="Expense", account_type="Expense Account")
-		self.party = make_party(self.receivable.name)
-		self.item = make_item(self.income.name, self.expense.name, rate=75)
-		settings = frappe.get_single("Books Pos Settings")
-		settings.default_account = self.receivable.name
-		settings.cash_account = self.cash.name
-		settings.write_off_account = self.expense.name
-		settings.pos_profile = None
-		settings.can_change_rate = 0
-		settings.is_shift_open = 1
-		settings.save()
-		frappe.db.set_value("Books Payment Method", "Cash", "account", self.cash.name, update_modified=False)
-		frappe.db.set_single_value("Books Accounting Settings", "enable_inventory", 0)
-
-	def test_context_and_checkout_create_paid_invoice(self):
-		context = get_pos_context(search=self.item.name)
-		self.assertEqual(context["items"][0].name, self.item.name)
-
-		result = checkout(
-			cart=[{"item": self.item.name, "quantity": 2, "rate": 1}],
-			customer=self.party.name,
-			payments=[{"payment_method": "Cash", "amount": 150}],
-		)
-		invoice = frappe.get_doc("Books Sales Invoice", result["invoice"])
-		self.assertEqual(invoice.docstatus, 1)
-		self.assertEqual(invoice.is_pos, 1)
-		self.assertEqual(invoice.grand_total, 150)
-		self.assertEqual(result["outstanding_amount"], 0)
-		self.assertEqual(len(result["payments"]), 1)
-
 	def test_interface_expected_amounts_match_closing_shift_totals(self):
+		receivable = make_account("POS Receivable", account_type="Receivable")
+		income = make_account("POS Income", root_type="Income", account_type="Income Account")
+		expense = make_account("POS Expense", root_type="Expense", account_type="Expense Account")
+		frappe.db.set_single_value("Books Accounting Settings", "discount_account", expense.name)
+		party = make_party(receivable.name)
+		item = make_item(income.name, expense.name)
 		start = now_datetime()
-		checkout(
-			cart=[{"item": self.item.name, "quantity": 2, "rate": 1}],
-			customer=self.party.name,
-			payments=[{"payment_method": "Cash", "amount": 150}],
+		invoice = make_invoice(
+			"Books Sales Invoice", party.name, receivable.name, item.name, income.name, is_pos=1
 		)
+		invoice.submit()
+		self._cash_payment(invoice, party, receivable).submit()
 		end = add_days(now_datetime(), 1)
 
 		amounts = BooksBespokeQueries().pos_transacted_amount(start.isoformat(), end.isoformat())
 
 		self.assertEqual(amounts, transacted_amounts(start, end))
-		self.assertEqual(amounts["Cash"], 150)
+		self.assertEqual(amounts["Cash"], invoice.base_grand_total)
 
-	def test_checkout_honors_custom_rate_when_enabled(self):
-		frappe.db.set_single_value("Books Pos Settings", "can_change_rate", 1)
-		result = checkout(
-			cart=[{"item": self.item.name, "quantity": 2, "rate": 60}],
-			customer=self.party.name,
-			payments=[{"payment_method": "Cash", "amount": 120}],
-		)
-		invoice = frappe.get_doc("Books Sales Invoice", result["invoice"])
-		self.assertEqual(invoice.grand_total, 120)
-
-	def test_checkout_transfers_stock_from_pos_profile_location(self):
-		stock = make_account("POS Stock", account_type="Stock")
-		frappe.db.set_single_value("Books Inventory Settings", "stock_in_hand", stock.name)
-		frappe.db.set_single_value("Books Inventory Settings", "cost_of_goods_sold", self.expense.name)
-		frappe.db.set_single_value("Books Accounting Settings", "enable_inventory", 1)
-		location = frappe.get_doc(
-			{"doctype": "Books Location", "name": unique_name("POS Warehouse")}
-		).insert()
-		item = make_item(self.income.name, self.expense.name, rate=75, track_item=1)
-		receipt = make_movement(
-			"MaterialReceipt",
-			[{"item": item.name, "to_location": location.name, "quantity": 2, "rate": 40}],
-		)
-		receipt.submit()
-		profile = frappe.get_doc(
+	def _cash_payment(self, invoice, party, account):
+		return frappe.get_doc(
 			{
-				"doctype": "Books Pos Profile",
-				"name": unique_name("POS Profile"),
-				"inventory": location.name,
-				"pos_customer": self.party.name,
+				"doctype": "Books Payment",
+				"party": party.name,
+				"date": now_datetime(),
+				"payment_type": "Receive",
+				"account": account.name,
+				"payment_account": self.counter.name,
+				"payment_method": "Cash",
+				"amount": invoice.base_grand_total,
+				"payment_references": [
+					{
+						"reference_type": invoice.doctype,
+						"reference_name": invoice.name,
+						"amount": invoice.base_grand_total,
+					}
+				],
 			}
 		).insert()
-		frappe.db.set_single_value("Books Pos Settings", "pos_profile", profile.name)
-
-		context = get_pos_context(search=item.name)
-		result = checkout(
-			cart=[{"item": item.name, "quantity": 1}],
-			customer=self.party.name,
-			payments=[{"payment_method": "Cash", "amount": 75}],
-		)
-
-		invoice = frappe.get_doc("Books Sales Invoice", result["invoice"])
-		shipment = frappe.get_doc("Books Shipment", invoice.reload().back_reference)
-		self.assertEqual(context["location"], location.name)
-		self.assertEqual(shipment.items[0].location, location.name)
-		self.assertEqual(stock_quantity(item.name, location.name), 1)
-		self.assertEqual(stock_quantity(item.name, "Stores"), 0)
 
 	def tearDown(self):
 		frappe.db.set_single_value("Books Pos Settings", "is_shift_open", 0)

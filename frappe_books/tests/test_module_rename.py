@@ -30,8 +30,6 @@ class TestModuleRename(IntegrationTestCase):
 		)
 		for doctype, name in (
 			("DocType", "Books Sales Invoice"),
-			("Report", "Books General Ledger"),
-			("Page", "books-dashboard"),
 			("Workspace", "Books"),
 			("Print Format", "Frappe Books - Sales Invoice"),
 		):

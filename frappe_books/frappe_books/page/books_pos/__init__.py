@@ -1,1 +1,0 @@
-"""Hosted Books POS page."""
