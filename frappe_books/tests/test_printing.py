@@ -4,7 +4,6 @@ import frappe
 from frappe.tests import IntegrationTestCase
 from frappe.utils.print_utils import get_print
 
-from frappe_books.printing import ensure_print_formats
 from frappe_books.tests.accounting import make_account, make_invoice, make_item, make_party
 
 
@@ -18,7 +17,6 @@ class IntegrationTestPrinting(IntegrationTestCase):
 		item = make_item(income.name, expense.name)
 		invoice = make_invoice("Books Sales Invoice", party.name, receivable.name, item.name, income.name)
 		invoice.submit()
-		ensure_print_formats()
 
 		html = get_print(invoice.doctype, invoice.name, print_format="Frappe Books - Sales Invoice")
 

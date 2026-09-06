@@ -6,7 +6,6 @@ import frappe
 from frappe.query_builder.functions import Cast_, Max
 
 from frappe_books.customization import sync_all_custom_forms
-from frappe_books.printing import ensure_print_formats
 
 DEFAULT_SERIES_START = 1001
 NUMERIC_NAME_DOCTYPES = (
@@ -49,7 +48,6 @@ def after_install():
 	ensure_roles()
 	ensure_number_series()
 	ensure_default_records()
-	ensure_print_formats()
 
 
 def before_tests():
@@ -57,7 +55,6 @@ def before_tests():
 	ensure_number_series()
 	ensure_numeric_name_series()
 	ensure_default_records()
-	ensure_print_formats()
 
 
 def after_migrate():
@@ -65,7 +62,6 @@ def after_migrate():
 	ensure_number_series()
 	ensure_numeric_name_series()
 	ensure_default_records()
-	ensure_print_formats()
 	sync_all_custom_forms()
 
 
