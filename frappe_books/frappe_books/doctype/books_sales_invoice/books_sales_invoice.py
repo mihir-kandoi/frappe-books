@@ -1,0 +1,68 @@
+# Copyright (c) 2026, Frappe Technologies Pvt. Ltd. and contributors
+# For license information, please see license.txt
+
+from frappe_books.accounting.invoice import InvoiceController
+
+
+class BooksSalesInvoice(InvoiceController):
+	# begin: auto-generated types
+	# This code is auto-generated. Do not modify anything in this block.
+
+	from typing import TYPE_CHECKING
+
+	if TYPE_CHECKING:
+		from frappe.types import DF
+
+		from frappe_books.frappe_books.doctype.books_applied_coupon_codes.books_applied_coupon_codes import (
+			BooksAppliedCouponCodes,
+		)
+		from frappe_books.frappe_books.doctype.books_pricing_rule_detail.books_pricing_rule_detail import (
+			BooksPricingRuleDetail,
+		)
+		from frappe_books.frappe_books.doctype.books_sales_invoice_item.books_sales_invoice_item import (
+			BooksSalesInvoiceItem,
+		)
+		from frappe_books.frappe_books.doctype.books_tax_summary.books_tax_summary import (
+			BooksTaxSummary,
+		)
+
+		account: DF.Link
+		amended_from: DF.Link | None
+		attachment: DF.Attach | None
+		available_loyalty_points: DF.Int
+		back_reference: DF.Link | None
+		base_grand_total: DF.Currency
+		coupons: DF.Table[BooksAppliedCouponCodes]
+		currency: DF.Link | None
+		date: DF.Datetime
+		discount_after_tax: DF.Check
+		discount_amount: DF.Currency
+		discount_percent: DF.Float
+		entry_currency: DF.Literal["Party", "Company"]
+		exchange_rate: DF.Float
+		grand_total: DF.Currency
+		is_fully_returned: DF.Check
+		is_pos: DF.Check
+		is_pricing_rule_applied: DF.Check
+		is_returned: DF.Check
+		items: DF.Table[BooksSalesInvoiceItem]
+		loyalty_points: DF.Int
+		loyalty_program: DF.Link | None
+		make_auto_payment: DF.Check
+		make_auto_stock_transfer: DF.Check
+		net_total: DF.Currency
+		number_series: DF.Link
+		outstanding_amount: DF.Currency
+		party: DF.Link
+		price_list: DF.Link | None
+		pricing_rule_detail: DF.Table[BooksPricingRuleDetail]
+		quote: DF.Link | None
+		redeem_loyalty_points: DF.Check
+		return_against: DF.Link | None
+		set_discount_amount: DF.Check
+		stock_not_transferred: DF.Float
+		taxes: DF.Table[BooksTaxSummary]
+		terms: DF.Text | None
+	# end: auto-generated types
+
+	transaction_type = "sales"

@@ -1,0 +1,142 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "autoname": "Prompt",
+ "creation": "2026-08-27 22:09:39.845521",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "from_date",
+  "to_date",
+  "is_enabled",
+  "collection_rules",
+  "conversion_factor",
+  "expiry_duration",
+  "expense_account",
+  "validity_and_usage_section_break_8",
+  "maximum_use",
+  "used"
+ ],
+ "fields": [
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "From Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "To Date",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "is_enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Enabled",
+   "reqd": 1
+  },
+  {
+   "fieldname": "collection_rules",
+   "fieldtype": "Table",
+   "label": "Collection Rules",
+   "options": "Books Collection Rules Items"
+  },
+  {
+   "default": "1",
+   "fieldname": "conversion_factor",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Conversion Factor",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "expiry_duration",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "Expiry Duration"
+  },
+  {
+   "fieldname": "expense_account",
+   "fieldtype": "Link",
+   "label": "Expense Account",
+   "options": "Books Account",
+   "reqd": 1
+  },
+  {
+   "fieldname": "validity_and_usage_section_break_8",
+   "fieldtype": "Section Break",
+   "label": "Validity and Usage"
+  },
+  {
+   "default": "0",
+   "fieldname": "maximum_use",
+   "fieldtype": "Int",
+   "label": "Maximum Use"
+  },
+  {
+   "default": "0",
+   "fieldname": "used",
+   "fieldtype": "Int",
+   "label": "Used",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-27 23:43:15.447317",
+ "modified_by": "Administrator",
+ "module": "Frappe Books",
+ "name": "Books Loyalty Program",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Books Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Books User",
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

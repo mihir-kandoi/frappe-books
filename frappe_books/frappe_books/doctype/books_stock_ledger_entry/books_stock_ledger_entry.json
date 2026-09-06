@@ -1,0 +1,142 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "autoname": "format:{##########}",
+ "creation": "2026-08-27 22:09:40.235542",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "default_section_break_1",
+  "date",
+  "details_section_break_3",
+  "location",
+  "batch",
+  "serial_number",
+  "item",
+  "rate",
+  "quantity",
+  "reference_section_break_10",
+  "reference_type",
+  "reference_name"
+ ],
+ "fields": [
+  {
+   "fieldname": "default_section_break_1",
+   "fieldtype": "Section Break",
+   "label": "Default"
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Datetime",
+   "label": "Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "details_section_break_3",
+   "fieldtype": "Section Break",
+   "label": "Details"
+  },
+  {
+   "fieldname": "location",
+   "fieldtype": "Link",
+   "label": "Location",
+   "options": "Books Location",
+   "read_only": 1
+  },
+  {
+   "fieldname": "batch",
+   "fieldtype": "Link",
+   "label": "Batch",
+   "options": "Books Batch",
+   "read_only": 1
+  },
+  {
+   "fieldname": "serial_number",
+   "fieldtype": "Link",
+   "label": "Serial Number",
+   "options": "Books Serial Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "label": "Item",
+   "options": "Books Item",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rate",
+   "fieldtype": "Currency",
+   "label": "Rate",
+   "read_only": 1
+  },
+  {
+   "fieldname": "quantity",
+   "fieldtype": "Float",
+   "label": "Quantity",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reference_section_break_10",
+   "fieldtype": "Section Break",
+   "label": "Reference"
+  },
+  {
+   "fieldname": "reference_type",
+   "fieldtype": "Link",
+   "label": "Ref. Type",
+   "options": "DocType",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reference_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Ref. Name",
+   "options": "reference_type",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-27 23:43:16.573765",
+ "modified_by": "Administrator",
+ "module": "Frappe Books",
+ "name": "Books Stock Ledger Entry",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Books Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Books User"
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

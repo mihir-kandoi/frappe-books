@@ -1,4 +1,4 @@
-# Frappe Books for Frappe Framework and SQLite
+# Frappe Books
 
 This repository contains a pure Frappe Framework application for Books. It serves the Vue interface at `/books` and uses Frappe for authentication, permissions, document storage, and server workflows.
 
@@ -6,7 +6,7 @@ The app follows the standalone SPA structure used by ERPNext Banking. Vite write
 
 Frappe runs submit and cancel actions in one server transaction. This keeps ledger, stock, payment, pricing, and loyalty updates atomic. Draft updates also reject stale modification times.
 
-The port targets Frappe Framework version 16. SQLite support in Frappe is still experimental. Use this app for local use, evaluation, and controlled single-site deployments. Test it carefully before you use it for production accounting data.
+The app currently targets only the Frappe Framework `develop` branch. It uses Frappe's database APIs with any of the database options listed below.
 
 ## Included
 
@@ -28,14 +28,19 @@ The browser handles downloads, file selection, and printing. Company data belong
 
 ## Requirements
 
-- Frappe Framework 16
+- Frappe Framework `develop` only
 - Python 3.14
 - Redis
-- SQLite 3
+- Node.js and Yarn
+- One database from the following table
 
-This app does not require MariaDB or PostgreSQL. It is not intended for Frappe Cloud.
+| Database | `--db-type` | Setup |
+| --- | --- | --- |
+| MariaDB 11.8 | `mariadb` | Install the database server and client tools. |
+| PostgreSQL 18 | `postgres` | Install the database server and client tools. |
+| SQLite 3 | `sqlite` | No database server is required. |
 
-Production installation requires Node.js and Yarn. Bench installs the frontend dependencies and builds the Vue app during deployment.
+Bench installs the frontend dependencies and builds the Vue app during deployment.
 
 The repository stores the Vue source and its lockfile. It does not store generated JavaScript, CSS, or the generated Frappe website entry.
 
@@ -48,34 +53,44 @@ uv python install 3.14
 uv tool install frappe-bench
 ```
 
-Create a Frappe v16 bench outside this repository:
+Create a Frappe `develop` bench outside this repository:
 
 ```bash
 BOOKS_PYTHON="$(uv python find 3.14)"
-bench init --frappe-branch version-16 --python "$BOOKS_PYTHON" books-frappe-sqlite-bench
-cd books-frappe-sqlite-bench
+bench init --frappe-branch develop --python "$BOOKS_PYTHON" books-bench
+cd books-bench
 ```
 
 Install the app from GitHub:
 
 ```bash
-bench get-app https://github.com/mihir-kandoi/frappe-books-sqlite.git
+bench get-app https://github.com/mihir-kandoi/frappe-books.git
 bench set-config -g developer_mode 1
 ```
 
-Create and install a SQLite site:
+Choose the database type from the table above. This example uses `mariadb`:
 
 ```bash
-bench new-site books-sqlite.localhost \
-  --db-type sqlite \
-  --admin-password admin \
+BOOKS_DB_TYPE=mariadb
+bench new-site books.localhost \
+  --db-type "$BOOKS_DB_TYPE" \
   --set-default
-bench --site books-sqlite.localhost install-app frappe_books
-bench --site books-sqlite.localhost migrate
+```
+
+Bench prompts for the required passwords. For a database server, set `--db-host`, `--db-port`, and `--db-root-username` as needed.
+
+Install the app and start the bench:
+
+```bash
+bench --site books.localhost install-app frappe_books
+bench --site books.localhost migrate
 bench start
 ```
 
-Open `http://books-sqlite.localhost:8000/books`. Sign in and complete the original Books setup wizard.
+Open `http://books.localhost:8000/books`. Sign in and complete the original Books setup wizard.
+
+To move existing data between database engines, create a separate site and migrate the data.
+Changing `db_type` in `site_config.json` does not convert a database or an original desktop Books file.
 
 ## Build the web app
 
@@ -108,41 +123,47 @@ Use standard Frappe **Data Import** and **Data Export** for CSV-based transfers.
 The checked-in DocTypes and `frappe_books/schema_mapping.json` are generated from the frontend schema files. After you change a frontend schema, synchronize it from the bench:
 
 ```bash
-bench --site books-sqlite.localhost execute frappe_books.dev.schema_sync.sync \
-  --kwargs '{"source_root":"/absolute/path/to/books"}'
-bench --site books-sqlite.localhost migrate
+bench --site books.localhost execute frappe_books.dev.schema_sync.sync \
+  --kwargs '{"source_root":"/absolute/path/to/frappe-books"}'
+bench --site books.localhost migrate
 ```
 
 Review generated files before committing them. Keep application logic outside the auto-generated type blocks in DocType controllers.
 
 ## Tests and checks
 
-Use a separate SQLite site for tests:
+Create a separate test site with the database type selected during installation:
 
 ```bash
-bench new-site books-sqlite-test.localhost \
-  --db-type sqlite \
+BOOKS_TEST_SITE=books-test.localhost
+bench new-site "$BOOKS_TEST_SITE" \
+  --db-type "$BOOKS_DB_TYPE" \
   --admin-password admin
-bench --site books-sqlite-test.localhost install-app frappe_books
-bench --site books-sqlite-test.localhost set-config allow_tests 1 --parse
-bench --site books-sqlite-test.localhost migrate
-bench --site books-sqlite-test.localhost run-tests --app frappe_books
+bench --site "$BOOKS_TEST_SITE" install-app frappe_books
+bench --site "$BOOKS_TEST_SITE" set-config allow_tests 1 --parse
+bench --site "$BOOKS_TEST_SITE" migrate
+bench --site "$BOOKS_TEST_SITE" run-tests --app frappe_books
 uvx ruff check apps/frappe_books/frappe_books
 uvx ruff format --check apps/frappe_books/frappe_books
 ```
 
 The integration suite covers the UI data layer, posting, reversals, payments, reports, stock, POS, setup, and printing.
+Use a separate test site for each database and run the same suite against Frappe `develop`.
 
-## SQLite operations
+## Site maintenance
 
-Frappe stores the database file under `sites/<site>/db/`. Back up the complete site, including `site_config.json`, private files, public files, and the SQLite database file.
+Back up the database and files through Bench:
 
-SQLite serializes writes to one database file. Run one web deployment for a site unless you have tested its write workload and locking behavior. Keep the database on a local persistent volume, not a network file system. Stop writers or use Frappe's backup command when you take a filesystem-level copy.
+```bash
+bench --site books.localhost backup --with-files
+```
+
+Keep a copy of `site_config.json` with the backup.
 
 After updating this app, always run:
 
 ```bash
-bench --site books-sqlite.localhost migrate
+bench --site books.localhost migrate
 ```
 
 ## License

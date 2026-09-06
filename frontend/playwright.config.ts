@@ -4,8 +4,7 @@ export default defineConfig({
   testDir: './tests/ui',
   workers: 1,
   use: {
-    baseURL:
-      process.env.BOOKS_TEST_URL ?? 'http://books-sqlite-test.localhost:8000',
+    baseURL: process.env.BOOKS_TEST_URL ?? 'http://books-test.localhost:8000',
     channel: process.env.BOOKS_BROWSER_CHANNEL,
     // Headless Chromium hides scrollbars by default.
     launchOptions: { ignoreDefaultArgs: ['--hide-scrollbars'] },

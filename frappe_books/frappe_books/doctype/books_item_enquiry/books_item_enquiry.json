@@ -1,0 +1,93 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "autoname": "format:{##########}",
+ "creation": "2026-08-27 22:09:39.783982",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "default_section_break_1",
+  "item",
+  "customer",
+  "contact",
+  "description",
+  "similar_product"
+ ],
+ "fields": [
+  {
+   "fieldname": "default_section_break_1",
+   "fieldtype": "Section Break",
+   "label": "Default"
+  },
+  {
+   "fieldname": "item",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Data",
+   "label": "Customer"
+  },
+  {
+   "fieldname": "contact",
+   "fieldtype": "Data",
+   "label": "Contact"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "similar_product",
+   "fieldtype": "Data",
+   "label": "Similar Product"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-27 23:43:15.230630",
+ "modified_by": "Administrator",
+ "module": "Frappe Books",
+ "name": "Books Item Enquiry",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Books Manager",
+   "share": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Books User"
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

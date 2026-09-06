@@ -3,7 +3,7 @@
 import frappe
 from frappe.tests import IntegrationTestCase
 
-from frappe_books.frappe_books_sqlite.doctype.books_stock_movement.test_books_stock_movement import (
+from frappe_books.frappe_books.doctype.books_stock_movement.test_books_stock_movement import (
 	make_movement,
 )
 from frappe_books.inventory.stock import stock_quantity

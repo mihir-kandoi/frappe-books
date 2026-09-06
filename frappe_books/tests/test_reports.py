@@ -7,7 +7,7 @@ from frappe.tests import IntegrationTestCase
 from frappe.utils import add_days, now_datetime, nowdate
 
 from frappe_books.coa import ensure_standard_coa
-from frappe_books.frappe_books_sqlite.doctype.books_stock_movement.test_books_stock_movement import (
+from frappe_books.frappe_books.doctype.books_stock_movement.test_books_stock_movement import (
 	make_movement,
 )
 from frappe_books.regional import ensure_regional_records

@@ -1,0 +1,276 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "creation": "2026-08-27 22:09:39.462941",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "default_section_break_1",
+  "fullname",
+  "company_name",
+  "bank_name",
+  "country",
+  "email",
+  "accounts_section_break_7",
+  "write_off_account",
+  "round_off_account",
+  "discount_account",
+  "features_section_break_11",
+  "enable_discounting",
+  "enable_inventory",
+  "enable_price_list",
+  "enable_invoice_returns",
+  "enable_form_customization",
+  "enable_lead",
+  "enable_pricing_rule",
+  "enable_item_enquiry",
+  "enable_loyalty_program",
+  "enable_coupon_code",
+  "enableitem_group",
+  "enable_point_of_sale_with_out_inventory",
+  "enable_partial_payment",
+  "fiscal_year_section_break_26",
+  "fiscal_year_start",
+  "fiscal_year_end",
+  "setup_complete",
+  "default_section_break_30",
+  "tax_id",
+  "gstin"
+ ],
+ "fields": [
+  {
+   "fieldname": "default_section_break_1",
+   "fieldtype": "Section Break",
+   "label": "Default"
+  },
+  {
+   "fieldname": "fullname",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Full Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "company_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Company Name",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "bank_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Bank Name",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "description": "Select Country",
+   "fieldname": "country",
+   "fieldtype": "Autocomplete",
+   "in_list_view": 1,
+   "label": "Country",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "Email",
+   "reqd": 1
+  },
+  {
+   "fieldname": "accounts_section_break_7",
+   "fieldtype": "Section Break",
+   "label": "Accounts"
+  },
+  {
+   "fieldname": "write_off_account",
+   "fieldtype": "Link",
+   "label": "Write Off Account",
+   "options": "Books Account"
+  },
+  {
+   "fieldname": "round_off_account",
+   "fieldtype": "Link",
+   "label": "Round Off Account",
+   "options": "Books Account"
+  },
+  {
+   "fieldname": "discount_account",
+   "fieldtype": "Link",
+   "label": "Discount Account",
+   "options": "Books Account"
+  },
+  {
+   "fieldname": "features_section_break_11",
+   "fieldtype": "Section Break",
+   "label": "Features"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_discounting",
+   "fieldtype": "Check",
+   "label": "Enable Discount Accounting"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_inventory",
+   "fieldtype": "Check",
+   "label": "Enable Inventory"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_price_list",
+   "fieldtype": "Check",
+   "label": "Enable Price List"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_invoice_returns",
+   "fieldtype": "Check",
+   "label": "Enable Invoice Returns"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_form_customization",
+   "fieldtype": "Check",
+   "label": "Enable Form Customization"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_lead",
+   "fieldtype": "Check",
+   "label": "Enable Lead"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_pricing_rule",
+   "fieldtype": "Check",
+   "label": "Enable Pricing Rule"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_item_enquiry",
+   "fieldtype": "Check",
+   "label": "Enable Item Enquiry"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_loyalty_program",
+   "fieldtype": "Check",
+   "label": "Enable Loyalty Program"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_coupon_code",
+   "fieldtype": "Check",
+   "label": "Enable Coupon Code"
+  },
+  {
+   "default": "0",
+   "fieldname": "enableitem_group",
+   "fieldtype": "Check",
+   "label": "Enable Item Group"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_point_of_sale_with_out_inventory",
+   "fieldtype": "Check",
+   "label": "Enable POS Without Inventory"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_partial_payment",
+   "fieldtype": "Check",
+   "label": "Enable Partial Payment"
+  },
+  {
+   "fieldname": "fiscal_year_section_break_26",
+   "fieldtype": "Section Break",
+   "label": "Fiscal Year"
+  },
+  {
+   "fieldname": "fiscal_year_start",
+   "fieldtype": "Date",
+   "label": "Fiscal Year Start Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "fiscal_year_end",
+   "fieldtype": "Date",
+   "label": "Fiscal Year End Date",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "setup_complete",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Setup Complete"
+  },
+  {
+   "fieldname": "default_section_break_30",
+   "fieldtype": "Section Break",
+   "label": "Default"
+  },
+  {
+   "description": "CHE-123.456.789",
+   "fieldname": "tax_id",
+   "fieldtype": "Data",
+   "label": "Tax ID"
+  },
+  {
+   "description": "27AAAAA0000A1Z5",
+   "fieldname": "gstin",
+   "fieldtype": "Data",
+   "label": "GSTIN"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-08-27 23:43:14.600442",
+ "modified_by": "Administrator",
+ "module": "Frappe Books",
+ "name": "Books Accounting Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Books Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Books User"
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
