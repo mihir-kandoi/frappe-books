@@ -10,7 +10,6 @@ from frappe_books.printing import ensure_print_formats
 
 DEFAULT_SERIES_START = 1001
 NUMERIC_NAME_DOCTYPES = (
-	"Books Integration Error Log",
 	"Books Item Enquiry",
 	"Books Ledger Entry",
 	"Books Stock Ledger Entry",

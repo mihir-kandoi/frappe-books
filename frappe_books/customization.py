@@ -53,6 +53,7 @@ def _custom_field_definition(source_schema: str, row, rows) -> dict:
 		"fieldname": custom_target_field(row.fieldname),
 		"label": row.label,
 		"fieldtype": fieldtype,
+		# Existing rows have no value yet, so a column is only required when a default can fill it.
 		"reqd": bool(row.is_required and row.default is not None),
 		"default": row.default,
 		"is_system_generated": 1,

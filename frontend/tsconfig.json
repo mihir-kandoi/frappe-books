@@ -17,7 +17,6 @@
     "paths": {
       "src/*": ["src/*"],
       "schemas/*": ["schemas/*"],
-      "main/*": ["main/*"],
       "regional/*": ["regional/*"],
       "fixtures/*": ["fixtures/*"],
       "reports/*": ["reports/*"],

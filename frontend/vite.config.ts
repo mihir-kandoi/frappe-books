@@ -18,7 +18,6 @@ export default defineConfig(async () => {
         fyo: path.resolve(frontendRoot, 'fyo'),
         src: path.resolve(frontendRoot, 'src'),
         schemas: path.resolve(frontendRoot, 'schemas'),
-        backend: path.resolve(frontendRoot, 'backend'),
         models: path.resolve(frontendRoot, 'models'),
         utils: path.resolve(frontendRoot, 'utils'),
         regional: path.resolve(frontendRoot, 'regional'),

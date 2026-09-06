@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "vite",
+    "test": "node --test tests/*.test.mjs",
     "test:ui": "playwright test",
+    "typecheck": "vue-tsc --noEmit",
     "build": "vite build && node scripts/copy-html-entry.mjs"
   },
   "dependencies": {

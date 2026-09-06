@@ -290,6 +290,7 @@ class BooksDatabaseBridge:
 		# Numeric database IDs still identify text fields in the Books interface.
 		name = row.get("name")
 		values["name"] = str(name) if name is not None else None
+		# Undo the Pay account swap described in _target_values.
 		if source_schema == "Payment" and row.get("payment_type") == "Pay":
 			if "account" in requested:
 				values["account"] = _source_value(meta, "payment_account", row.get("payment_account"))
@@ -334,6 +335,9 @@ class BooksDatabaseBridge:
 					mapped[target_name] = [self._target_values(child_source, row) for row in value]
 			else:
 				mapped[target_name] = _target_value(meta, target_name, value)
+		# Frappe keeps the party ledger in account and the cash or bank account in
+		# payment_account for every payment. The Books interface keeps the source and
+		# destination accounts instead, so the two fields swap for Pay payments.
 		if source_schema == "Payment" and mapped.get("payment_type") == "Pay":
 			mapped["account"], mapped["payment_account"] = (
 				mapped.get("payment_account"),

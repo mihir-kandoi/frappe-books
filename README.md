@@ -145,6 +145,8 @@ bench --site "$BOOKS_TEST_SITE" migrate
 bench --site "$BOOKS_TEST_SITE" run-tests --app frappe_books
 uvx ruff check apps/frappe_books/frappe_books
 uvx ruff format --check apps/frappe_books/frappe_books
+yarn --cwd frontend typecheck
+yarn --cwd frontend test
 ```
 
 The integration suite covers the UI data layer, posting, reversals, payments, reports, stock, POS, setup, and printing.
