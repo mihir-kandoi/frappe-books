@@ -73,12 +73,14 @@ class IntegrationTestBooksPayment(IntegrationTestCase):
 		other_party = make_party(receivable.name)
 		item = make_item(income.name, expense.name)
 		invoice = make_invoice("Books Sales Invoice", party.name, receivable.name, item.name, income.name)
+		invoice.items[0].item_discount_percent = 0
+		invoice.save()
 
-		with self.assertRaises(frappe.ValidationError):
+		with self.assertRaisesRegex(frappe.ValidationError, "Submit invoice .* before allocating a payment"):
 			self._payment_for(invoice, party, receivable, cash).insert()
 
 		invoice.submit()
-		with self.assertRaises(frappe.ValidationError):
+		with self.assertRaisesRegex(frappe.ValidationError, "Invoice .* belongs to .* not to"):
 			self._payment_for(invoice, other_party, receivable, cash).insert()
 		self._payment_for(invoice, party, receivable, cash).insert()
 
