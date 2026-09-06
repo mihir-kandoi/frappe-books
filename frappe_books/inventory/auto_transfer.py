@@ -19,12 +19,7 @@ def create_auto_transfer(invoice) -> str | None:
 
 	is_sales = invoice.transaction_type == "sales"
 	doctype = "Books Shipment" if is_sales else "Books Purchase Receipt"
-	location_field = "shipment_location" if is_sales else "purchase_receipt_location"
-	location = (
-		invoice.flags.get("stock_location")
-		or frappe.db.get_single_value("Books Defaults", location_field)
-		or "Stores"
-	)
+	location = _stock_location(invoice)
 	return_against = None
 	if invoice.get("return_against"):
 		return_against = frappe.db.get_value(invoice.doctype, invoice.return_against, "back_reference")
@@ -63,6 +58,22 @@ def cancel_auto_transfer(invoice) -> None:
 		return
 	transfer.flags.ignore_links = True
 	transfer.cancel()
+
+
+def _stock_location(invoice) -> str:
+	if invoice.flags.get("stock_location"):
+		return invoice.flags.stock_location
+	if invoice.transaction_type == "sales" and invoice.get("is_pos"):
+		settings = frappe.get_single("Books Pos Settings")
+		location = (
+			frappe.db.get_value("Books Pos Profile", settings.pos_profile, "inventory")
+			if settings.pos_profile
+			else None
+		)
+		if location or settings.inventory:
+			return location or settings.inventory
+	field = "shipment_location" if invoice.transaction_type == "sales" else "purchase_receipt_location"
+	return frappe.db.get_single_value("Books Defaults", field) or "Stores"
 
 
 def _stock_rows(invoice) -> list[dict]:

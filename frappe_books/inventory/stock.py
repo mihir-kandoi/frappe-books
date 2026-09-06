@@ -133,8 +133,8 @@ def _validate_transfer(transaction, transfer):
 		available = stock_quantity(transfer["item"], transfer["from_location"], transfer.get("batch"))
 		if available < quantity:
 			frappe.throw(
-				_("Insufficient stock for {0}: {1} available, {2} required.").format(
-					transfer["item"], available, quantity
+				_("Insufficient stock for {0} at {1}: {2} available, {3} required.").format(
+					transfer["item"], transfer["from_location"], available, quantity
 				)
 			)
 		for serial_number in serial_numbers:
