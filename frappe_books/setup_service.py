@@ -3,7 +3,13 @@
 import frappe
 
 from frappe_books.accounting.money import as_decimal
-from frappe_books.coa import ensure_bank_account, ensure_discount_account, ensure_standard_coa
+from frappe_books.coa import (
+	ensure_bank_account,
+	ensure_chart,
+	ensure_discount_account,
+	find_account,
+	load_chart,
+)
 from frappe_books.currency import currency_fraction_values, currency_precision
 from frappe_books.regional import ensure_regional_records
 from frappe_books.setup import ensure_default_records, ensure_number_series, ensure_roles
@@ -24,17 +30,19 @@ def run_setup(wizard):
 	ensure_roles()
 	ensure_number_series()
 	ensure_default_records()
-	ensure_standard_coa()
+	chart = load_chart(wizard.chart_of_accounts)
+	ensure_chart(chart)
 	ensure_regional_records(wizard.country)
-	bank_account = ensure_bank_account(wizard.bank_name)
-	discount_account = ensure_discount_account()
+	bank_account = ensure_bank_account(wizard.bank_name, chart, wizard.country)
+	discount_account = ensure_discount_account(chart)
 	ensure_currency(wizard.currency)
-	_update_accounting_settings(wizard, discount_account)
+	accounts = _default_accounts(chart)
+	_update_accounting_settings(wizard, discount_account, accounts)
 	_update_system_settings(wizard)
 	_update_print_settings(wizard)
-	_update_inventory_settings()
-	_update_pos_settings()
-	_update_defaults(bank_account)
+	_update_inventory_settings(accounts)
+	_update_pos_settings(accounts)
+	_update_defaults(bank_account, accounts)
 	frappe.db.set_single_value("Books Setup Wizard", "completed", 1)
 	return {"setup_complete": True, "bank_account": bank_account}
 
@@ -66,7 +74,22 @@ def ensure_currency(currency):
 	).insert(ignore_permissions=True)
 
 
-def _update_accounting_settings(wizard, discount_account):
+def _default_accounts(chart):
+	"""Pick the chart's accounts for settings by name first, then by account type."""
+	return {
+		"write_off": find_account(chart, ["Write Off"]),
+		"round_off": find_account(chart, ["Rounded Off", "Round Off"], "Round Off"),
+		"cash": find_account(chart, ["Cash"], "Cash"),
+		"receivable": find_account(chart, ["Debtors"], "Receivable"),
+		"stock_in_hand": find_account(chart, ["Stock In Hand"], "Stock"),
+		"stock_received_but_not_billed": find_account(
+			chart, ["Stock Received But Not Billed"], "Stock Received But Not Billed"
+		),
+		"cost_of_goods_sold": find_account(chart, ["Cost of Goods Sold"], "Cost of Goods Sold"),
+	}
+
+
+def _update_accounting_settings(wizard, discount_account, accounts):
 	settings = frappe.get_single("Books Accounting Settings")
 	settings.update(
 		{
@@ -75,8 +98,8 @@ def _update_accounting_settings(wizard, discount_account):
 			"bank_name": wizard.bank_name,
 			"country": wizard.country,
 			"email": wizard.email,
-			"write_off_account": "Write Off",
-			"round_off_account": "Round Off",
+			"write_off_account": accounts["write_off"],
+			"round_off_account": accounts["round_off"],
 			"discount_account": discount_account,
 			"fiscal_year_start": wizard.fiscal_year_start,
 			"fiscal_year_end": wizard.fiscal_year_end,
@@ -112,38 +135,41 @@ def _update_system_settings(wizard):
 	settings.save(ignore_permissions=True)
 
 
-def _update_inventory_settings():
+def _update_inventory_settings(accounts):
 	settings = frappe.get_single("Books Inventory Settings")
 	settings.update(
 		{
 			"default_location": "Stores",
-			"stock_in_hand": "Stock In Hand",
-			"stock_received_but_not_billed": "Stock Received But Not Billed",
-			"cost_of_goods_sold": "Cost of Goods Sold",
+			"stock_in_hand": accounts["stock_in_hand"],
+			"stock_received_but_not_billed": accounts["stock_received_but_not_billed"],
+			"cost_of_goods_sold": accounts["cost_of_goods_sold"],
 		}
 	)
 	settings.save(ignore_permissions=True)
 
 
-def _update_pos_settings():
+def _update_pos_settings(accounts):
 	settings = frappe.get_single("Books Pos Settings")
 	settings.update(
 		{
 			"inventory": "Stores",
-			"cash_account": "Cash",
-			"write_off_account": "Write Off",
-			"default_account": "Debtors",
+			"cash_account": accounts["cash"],
+			"write_off_account": accounts["write_off"],
+			"default_account": accounts["receivable"],
 		}
 	)
 	settings.save(ignore_permissions=True)
-	frappe.db.set_value("Books Payment Method", "Cash", "account", "Cash", update_modified=False)
+	if accounts["cash"]:
+		frappe.db.set_value(
+			"Books Payment Method", "Cash", "account", accounts["cash"], update_modified=False
+		)
 
 
-def _update_defaults(bank_account):
+def _update_defaults(bank_account, accounts):
 	defaults = frappe.get_single("Books Defaults")
 	defaults.update(
 		{
-			"sales_payment_account": "Cash",
+			"sales_payment_account": accounts["cash"],
 			"purchase_payment_account": bank_account,
 			"shipment_location": "Stores",
 			"purchase_receipt_location": "Stores",
