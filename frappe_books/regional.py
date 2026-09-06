@@ -79,12 +79,12 @@ def validate_party(party):
 		return
 	if not party.get("gstin"):
 		frappe.throw(_("GSTIN is required for a registered party."))
-	validate_gstin(party.gstin)
+	party.gstin = validate_gstin(party.gstin)
 
 
 def validate_accounting_settings(settings):
 	if settings.country == "India" and settings.get("gstin"):
-		validate_gstin(settings.gstin)
+		settings.gstin = validate_gstin(settings.gstin)
 
 
 def validate_item(item):
