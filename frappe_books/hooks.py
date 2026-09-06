@@ -1,7 +1,7 @@
 app_name = "frappe_books"
 app_title = "Books"
 app_publisher = "Frappe Technologies Pvt. Ltd."
-app_description = "Experimental Frappe Books port using SQLite"
+app_description = "Frappe Books for Frappe Framework"
 app_email = "hello@frappe.io"
 app_license = "agpl-3.0"
 app_logo_url = "/assets/frappe_books/books-icon.png"
@@ -29,8 +29,7 @@ add_to_apps_screen = [
 	}
 ]
 
-# Frappe v16 gives its own Framework tile a late default sequence. Reorder it in the
-# completed boot payload so it remains the first tile on sites that install Books.
+# Keep the Framework tile first in the completed boot payload.
 boot_session = "frappe_books.boot.boot_session"
 
 # Companion apps that extend a host app (instead of taking their own apps-screen icon) can pin

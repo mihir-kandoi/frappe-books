@@ -8,6 +8,6 @@ yarn playwright install chromium
 yarn test:ui
 ```
 
-The default site is `http://books-sqlite-test.localhost:8000` with the local `Administrator` / `admin` login.
+The default site is `http://books-test.localhost:8000` with the local `Administrator` / `admin` login.
 Set `BOOKS_TEST_URL`, `BOOKS_TEST_USER`, and `BOOKS_TEST_PASSWORD` to use another test site.
 Set `BOOKS_BROWSER_CHANNEL=chrome` to use an installed Chrome browser.
