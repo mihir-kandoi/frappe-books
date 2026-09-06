@@ -301,7 +301,7 @@ def update_return_status(return_invoice, *, include_current):
 	frappe.db.set_value(
 		original.doctype,
 		original.name,
-		{"is_returned": is_returned, "is_fully_returned": is_fully_returned},
+		{"is_returned": int(is_returned), "is_fully_returned": int(is_fully_returned)},
 		update_modified=False,
 	)
 

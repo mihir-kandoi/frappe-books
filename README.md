@@ -148,7 +148,9 @@ uvx ruff format --check apps/frappe_books/frappe_books
 ```
 
 The integration suite covers the UI data layer, posting, reversals, payments, reports, stock, POS, setup, and printing.
+Database regressions cover legacy date repair, native Date columns, singleton settings, and large numeric record names.
 Use a separate test site for each database and run the same suite against Frappe `develop`.
+GitHub Actions runs installation, migration, and the integration suite on all three databases against Frappe `develop`.
 
 ## Site maintenance
 

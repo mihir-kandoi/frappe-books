@@ -71,3 +71,31 @@ class IntegrationTestDocumentActions(IntegrationTestCase):
 		credit_note.cancel()
 		self.assertEqual(invoice.db_get("is_returned"), 0)
 		self.assertEqual(invoice.db_get("is_fully_returned"), 0)
+
+	def test_partial_and_full_return_flags_for_sales_and_purchases(self):
+		payable = make_account("Return Payable", root_type="Liability", account_type="Payable")
+		supplier = make_party(payable.name, role="Supplier")
+		for doctype, party, account, item_account in (
+			("Books Sales Invoice", self.party.name, self.receivable.name, self.income.name),
+			("Books Purchase Invoice", supplier.name, payable.name, self.expense.name),
+		):
+			with self.subTest(doctype=doctype):
+				invoice = make_invoice(doctype, party, account, self.item.name, item_account)
+				invoice.items[0].item_discount_percent = 0
+				invoice.save().submit()
+				partial = frappe.get_doc(make_return(doctype, invoice.name))
+				partial.items[0].quantity = -1
+				partial.insert().submit()
+				self.assertEqual(invoice.db_get("is_returned"), 1)
+				self.assertEqual(invoice.db_get("is_fully_returned"), 0)
+
+				remaining = frappe.get_doc(make_return(doctype, invoice.name))
+				remaining.items[0].quantity = -1
+				remaining.insert().submit()
+				self.assertEqual(invoice.db_get("is_fully_returned"), 1)
+				remaining.cancel()
+				self.assertEqual(invoice.db_get("is_returned"), 1)
+				self.assertEqual(invoice.db_get("is_fully_returned"), 0)
+				partial.cancel()
+				self.assertEqual(invoice.db_get("is_returned"), 0)
+				self.assertEqual(invoice.db_get("is_fully_returned"), 0)

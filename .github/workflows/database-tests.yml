@@ -1,0 +1,104 @@
+name: Database compatibility
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    name: Frappe develop / ${{ matrix.database }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [sqlite, mariadb, postgres]
+    services:
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_ROOT_PASSWORD: books-test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=10
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: books-test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s --health-timeout=5s --health-retries=10
+      redis-cache:
+        image: redis:7
+        ports:
+          - 13000:6379
+      redis-queue:
+        image: redis:7
+        ports:
+          - 11000:6379
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcups2-dev libmariadb-dev mariadb-client \
+            postgresql-client redis-server libpango-1.0-0 libharfbuzz-subset0
+          npm install --global yarn@1.22.22
+          uv tool install frappe-bench
+
+      - name: Create develop bench
+        run: |
+          bench init "$RUNNER_TEMP/books-bench" --frappe-branch develop \
+            --python "$(command -v python)" --skip-assets --no-backups
+
+      - name: Install Books and test dependencies
+        working-directory: ${{ runner.temp }}/books-bench
+        run: |
+          bench set-config -g developer_mode 1
+          bench set-config -g redis_cache redis://127.0.0.1:13000
+          bench set-config -g redis_queue redis://127.0.0.1:11000
+          bench set-config -g redis_socketio redis://127.0.0.1:13000
+          bench get-app --soft-link --skip-assets "$GITHUB_WORKSPACE"
+          bench setup requirements --dev
+          bench build
+
+      - name: Create and migrate test site
+        working-directory: ${{ runner.temp }}/books-bench
+        env:
+          BOOKS_TEST_DATABASE: ${{ matrix.database }}
+        run: |
+          case "$BOOKS_TEST_DATABASE" in
+            mariadb) database_args=(--db-host 127.0.0.1 --db-port 3306 --db-root-username root --db-root-password books-test) ;;
+            postgres) database_args=(--db-host 127.0.0.1 --db-port 5432 --db-root-username postgres --db-root-password books-test) ;;
+            sqlite) database_args=() ;;
+          esac
+          bench new-site books-test.localhost --db-type "$BOOKS_TEST_DATABASE" \
+            --admin-password admin "${database_args[@]}"
+          bench --site books-test.localhost install-app frappe_books
+          bench --site books-test.localhost set-config allow_tests 1 --parse
+          bench --site books-test.localhost migrate
+
+      - name: Run integration suite
+        working-directory: ${{ runner.temp }}/books-bench
+        run: bench --site books-test.localhost run-tests --app frappe_books
+
+      - name: Check Python style
+        run: |
+          uvx ruff check frappe_books
+          uvx ruff format --check frappe_books

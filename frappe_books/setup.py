@@ -110,7 +110,8 @@ def _max_numeric_name(doctype):
 	if not frappe.db.table_exists(doctype):
 		return 0
 	table = frappe.qb.DocType(doctype)
-	maximum = frappe.qb.from_(table).select(Max(Cast_(table.name, "integer"))).run()[0][0]
+	name_type = "signed" if frappe.db.db_type == "mariadb" else "bigint"
+	maximum = frappe.qb.from_(table).select(Max(Cast_(table.name, name_type))).run()[0][0]
 	return int(maximum or 0)
 
 

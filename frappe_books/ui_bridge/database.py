@@ -251,12 +251,11 @@ class BooksDatabaseBridge:
 		return self._append_source_children(source_schema, doc, values, requested)
 
 	def _to_source_single(self, source_schema: str, doc, requested=None) -> dict:
-		rows = frappe.db.sql(
-			"select field, value from tabSingles where doctype = %s",
-			doc.doctype,
-			as_dict=True,
-		)
-		stored = {row.field: row.value for row in rows if not self._is_password_field(doc.meta, row.field)}
+		stored = {
+			field: value
+			for field, value in frappe.db.get_singles_dict(doc.doctype).items()
+			if not self._is_password_field(doc.meta, field)
+		}
 		stored["name"] = source_schema
 		known_targets = set(schema_mapping()[source_schema]["fields"].values())
 		available = {
@@ -586,7 +585,7 @@ def _normalize_attach_image(meta, fieldname: str, value: Any) -> Any:
 		return value
 	try:
 		decoded = b64decode(payload, validate=True).decode()
-	except (BinasciiError, UnicodeDecodeError, ValueError):
+	except BinasciiError, UnicodeDecodeError, ValueError:
 		return value
 	return decoded if decoded.startswith("data:image/") else value
 

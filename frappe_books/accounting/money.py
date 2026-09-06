@@ -1,4 +1,4 @@
-"""Decimal helpers for SQLite-safe accounting calculations."""
+"""Decimal helpers for consistent accounting calculations across databases."""
 
 from decimal import ROUND_HALF_UP, Decimal
 

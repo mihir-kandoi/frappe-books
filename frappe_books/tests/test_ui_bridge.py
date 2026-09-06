@@ -35,7 +35,7 @@ class IntegrationTestUiBridge(IntegrationTestCase):
 		self.assertFalse(frappe.db.exists("Books Account", name))
 
 	def test_single_read_omits_unstored_frappe_defaults(self):
-		frappe.db.sql("delete from tabSingles where doctype = %s", "Books Pos Settings")
+		frappe.db.delete("Singles", {"doctype": "Books Pos Settings"})
 
 		self.assertEqual(
 			self.bridge.get("POSSettings", "POSSettings"),
