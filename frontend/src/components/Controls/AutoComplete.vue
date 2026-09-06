@@ -11,6 +11,7 @@
     :size="size"
     :text-right="textRight"
     :container-styles="containerStyles"
+    :trailing-actions="canLink"
   >
     <template v-if="canLink" #trailing>
       <LinkedEntryButton

@@ -12,7 +12,10 @@
 		disabled
 	>
 		<template v-if="$slots.trailing" #suffix>
-			<slot name="trailing"></slot>
+			<!-- TextInput reserves 8/10px for suffixes; 24px actions need 2/4px. -->
+			<div class="inline-flex items-center" :class="{ '-me-1.5': trailingActions }">
+				<slot name="trailing"></slot>
+			</div>
 		</template>
 	</FrappeTextInput>
 </template>
@@ -40,6 +43,7 @@ export default defineComponent({
 		doc: { type: Object as PropType<Doc> },
 		border: { type: Boolean, default: false },
 		showLabel: { type: Boolean, default: false },
+		trailingActions: { type: Boolean, default: false },
 		required: { type: Boolean, default: false },
 		size: { type: String, default: "large" },
 		textRight: {

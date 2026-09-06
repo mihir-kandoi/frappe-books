@@ -9,6 +9,7 @@
       :show-label="showLabel"
       :required="isRequired"
       :size="size"
+      trailing-actions
     >
       <template v-if="value || !isReadOnly" #trailing>
         <div class="ms-2 flex shrink-0 gap-1">

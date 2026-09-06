@@ -435,6 +435,67 @@ for (const size of ['large', 'small']) {
   });
 }
 
+for (const size of ['large', 'small']) {
+  test(`${size} read-only link actions have balanced hover spacing`, async ({
+    page,
+  }) => {
+    for (const dir of ['ltr', 'rtl']) {
+      for (const showLabel of [false, true]) {
+        for (const border of [false, true]) {
+          await page.evaluate(
+            (props) => {
+              document.documentElement.dir = props.dir;
+              (window as any).posFixture.state.linkControl = props;
+            },
+            { size, dir, showLabel, border, readOnly: true }
+          );
+          const input = page.getByRole('textbox');
+          const linked = page.getByRole('button', {
+            name: 'Open linked entry',
+            exact: true,
+          });
+          await expect(input).toBeDisabled();
+          await expect(linked).toBeEnabled();
+          await linked.hover();
+          const field = (await input.boundingBox())!;
+          const button = (await linked.boundingBox())!;
+          const top = button.y - field.y;
+          const bottom = field.y + field.height - button.y - button.height;
+          const end =
+            dir === 'ltr'
+              ? field.x + field.width - button.x - button.width
+              : button.x - field.x;
+          expect(button.width).toBe(24);
+          expect(button.height).toBe(24);
+          expect(top).toBe(size === 'large' ? 4 : 2);
+          expect(bottom).toBe(top);
+          expect(end).toBe(top);
+          if (!showLabel && !border) {
+            await expect(
+              page.getByText('Party', { exact: true })
+            ).toBeVisible();
+            await page.screenshot({
+              animations: 'disabled',
+              path: test.info().outputPath(`${dir}-readonly-hover.png`),
+            });
+          }
+        }
+      }
+    }
+    expect(
+      await page.evaluate(() => (window as any).posFixture.state.invoice.party)
+    ).toBe('Aarav Shah');
+    const linked = page.getByRole('button', {
+      name: 'Open linked entry',
+      exact: true,
+    });
+    await linked.focus();
+    await expect(page.getByText('Party', { exact: true })).toBeVisible();
+    await linked.press('Enter');
+    await expect(page).toHaveURL(/\/edit\/Party\/Aarav%20Shah/);
+  });
+}
+
 async function actionStyle(button: Locator) {
   return button.evaluate(async (element) => {
     await Promise.all(
