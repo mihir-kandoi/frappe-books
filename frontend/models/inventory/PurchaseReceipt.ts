@@ -15,7 +15,7 @@ export class PurchaseReceipt extends StockTransfer {
     return {
       columns: [
         'name',
-        getTransactionStatusColumn(),
+        getTransactionStatusColumn(false),
         'party',
         'date',
         'grandTotal',

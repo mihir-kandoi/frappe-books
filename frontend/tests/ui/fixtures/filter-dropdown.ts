@@ -11,7 +11,40 @@ import type { QueryFilter } from 'utils/db/types';
 import 'src/styles/index.css';
 
 async function mount() {
-  FrappeDatabaseDemux.prototype.getSchemaMap = async () => getSchemas('-', []);
+  FrappeDatabaseDemux.prototype.getSchemaMap = async () => {
+    const schemas = getSchemas('-', []);
+    return {
+      ...schemas,
+      Item: {
+        ...schemas.Item,
+        fields: [
+          ...schemas.Item.fields,
+          {
+            fieldname: 'customChoice',
+            fieldtype: 'Select',
+            label: 'Custom Choice',
+            filter: true,
+            readOnly: true,
+            required: true,
+            default: 'code-one',
+            options: [
+              { label: 'First label', value: 'code-one' },
+              { label: 'Second label', value: 'code-two' },
+            ],
+          },
+          {
+            fieldname: 'customSuggestion',
+            fieldtype: 'AutoComplete',
+            label: 'Custom Suggestion',
+            options: [
+              { label: 'One', value: 'One' },
+              { label: 'Two', value: 'Two' },
+            ],
+          },
+        ],
+      },
+    };
+  };
   await fyo.db.init();
   fyo.doc.registerModels(models);
   fyo.singles.SystemSettings = { currency: 'USD', displayPrecision: 2 } as any;
@@ -19,10 +52,21 @@ async function mount() {
     applied: {} as QueryFilter,
     schemaName: 'SalesInvoice',
     useDatabase: false,
+    lookupFailure: false,
+    lookupCalls: [] as string[],
     queries: [] as QueryFilter[],
   });
   const list = ref<InstanceType<typeof List>>();
   fyo.db.getAll = async (_schema, options) => {
+    if (options?.fields?.[0] !== '*') {
+      state.lookupCalls.push(_schema);
+      if (state.lookupFailure) throw new Error('Lookup unavailable');
+      if (_schema === 'User')
+        return [{ name: 'Administrator' }, { name: 'Guest' }];
+      return _schema === 'NumberSeries'
+        ? [{ name: 'JV-' }, { name: 'BANK-' }]
+        : [{ name: `${_schema}-001` }, { name: `${_schema}-002` }];
+    }
     state.queries.push(options?.filters ?? {});
     if (state.useDatabase) {
       const response = await fetch('/__filter_database_test', {
@@ -89,7 +133,7 @@ async function mount() {
   });
   app.provide(languageDirectionKey, ref('ltr'));
   app.mount('#app');
-  (window as any).filterFixture = { state, filter, list };
+  (window as any).filterFixture = { state, filter, list, fyo };
 }
 
 void mount();

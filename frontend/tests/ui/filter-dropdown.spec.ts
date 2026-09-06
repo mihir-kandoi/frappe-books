@@ -1,53 +1,15 @@
 import { expect, test, type Page } from '@playwright/test';
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import path from 'node:path';
-import { build, preview, loadConfigFromFile, type PreviewServer } from 'vite';
+import {
+  setupFilterFixture,
+  choose,
+  setValue,
+  appliedFilters,
+} from './helpers/filter-fixture';
 
-let server: PreviewServer;
-let directory: string;
-let url: string;
-
-test.beforeAll(async () => {
-  const loaded = await loadConfigFromFile(
-    { command: 'serve', mode: 'test' },
-    path.resolve(__dirname, '../../vite.config.ts')
-  );
-  directory = await mkdtemp(path.join(tmpdir(), 'books-filter-ui-'));
-  const config = {
-    ...loaded!.config,
-    configFile: false,
-    logLevel: 'error' as const,
-    build: {
-      ...loaded!.config.build,
-      outDir: directory,
-      rollupOptions: {
-        input: path.resolve(__dirname, 'fixtures/filter-dropdown.html'),
-      },
-    },
-    preview: { host: '127.0.0.1', port: 0, proxy: {} },
-  };
-  await build(config);
-  server = await preview(config);
-  url = `${server.resolvedUrls!.local[0]}tests/ui/fixtures/filter-dropdown.html`;
-});
-
-test.afterAll(async () => {
-  if (server)
-    await new Promise<void>((resolve) =>
-      server.httpServer.close(() => resolve())
-    );
-  if (directory) await rm(directory, { recursive: true, force: true });
-});
-
-test.beforeEach(async ({ page }) => {
-  await page.clock.install({ time: new Date('2024-02-15T12:00:00') });
-  await page.goto(url);
-  await page.getByRole('button', { name: 'Filter', exact: true }).click();
-  await page.evaluate(() => document.fonts.ready);
-});
+setupFilterFixture();
 
 for (const viewport of [
   { width: 1440, height: 900 },
@@ -95,7 +57,7 @@ for (const viewport of [
       path: test.info().outputPath('many-filters.png'),
     });
     const lastValue = panel
-      .getByRole('textbox', { name: 'Value', exact: true })
+      .getByRole('combobox', { name: 'Value', exact: true })
       .last();
     await lastValue.scrollIntoViewIfNeeded();
     await expect(lastValue).toBeInViewport();
@@ -113,7 +75,7 @@ test('selecting a condition closes its menu and Apply preserves the value', asyn
   await page.getByRole('option', { name: 'Is', exact: true }).click();
   await expect(page.getByRole('listbox')).toBeHidden();
   await expect(panel).toBeVisible();
-  await panel.getByRole('textbox', { name: 'Value', exact: true }).fill('Paid');
+  await setValue(page, 'Paid');
   await panel.getByRole('button', { name: 'Apply', exact: true }).click();
   await expect(panel).toBeHidden();
   expect(await appliedFilters(page)).toEqual({ status: ['=', 'Paid'] });
@@ -124,8 +86,8 @@ test('selecting a condition closes its menu and Apply preserves the value', asyn
   await expect(trigger).toBeFocused();
   await trigger.press('Enter');
   await expect(
-    panel.getByRole('textbox', { name: 'Value', exact: true })
-  ).toHaveValue('Paid');
+    panel.getByRole('combobox', { name: 'Value', exact: true })
+  ).toHaveText('Paid');
   await expect(
     panel.getByRole('combobox', { name: 'Field', exact: true })
   ).toBeFocused();
@@ -142,23 +104,16 @@ test('remaining filters can be edited and removed after an incomplete row is dis
   const add = panel.getByRole('button', { name: 'Add a filter', exact: true });
   await add.click();
   await add.click();
-  await panel
-    .getByRole('textbox', { name: 'Value', exact: true })
-    .nth(1)
-    .fill('Paid');
+  await setValue(page, 'Paid', 1);
   await panel.getByRole('button', { name: 'Apply', exact: true }).click();
   await page
     .getByRole('button', { name: '1 filter applied', exact: true })
     .click();
   await expect(panel.getByRole('group')).toHaveCount(1);
-  await panel
-    .getByRole('textbox', { name: 'Value', exact: true })
-    .fill('Unpaid');
-  await panel
-    .getByRole('textbox', { name: 'Value', exact: true })
-    .press('Enter');
+  await setValue(page, 'Unpaid');
+  await panel.getByRole('button', { name: 'Apply', exact: true }).click();
   await expect(panel).toBeHidden();
-  expect(await appliedFilters(page)).toEqual({ status: ['like', '%Unpaid%'] });
+  expect(await appliedFilters(page)).toEqual({ status: ['=', 'Unpaid'] });
   await page
     .getByRole('button', { name: '1 filter applied', exact: true })
     .click();
@@ -170,15 +125,11 @@ test('remaining filters can be edited and removed after an incomplete row is dis
   expect(await appliedFilters(page)).toEqual({});
 });
 
-async function appliedFilters(page: Page) {
-  return page.evaluate(() => (window as any).filterFixture.state.applied);
-}
-
 const operatorCases = [
   ['Is', '=', 'Paid', 20],
   ['Is Not', '!=', 'Paid', 40],
-  ['Contains', 'like', 'paid', 60],
-  ['Does Not Contain', 'not like', 'partly', 40],
+  ['Contains', 'like', 'Paid', 60],
+  ['Does Not Contain', 'not like', 'Paid', 0],
   ['Greater Than', '>', 'Paid', 40],
   ['Less Than', '<', 'Paid', 0],
   ['Is Empty', 'is null', null, 0],
@@ -193,10 +144,7 @@ for (const [label, operator, value, count] of operatorCases) {
       .getByRole('button', { name: 'Add a filter', exact: true })
       .click();
     await choose(page, 'Condition', label);
-    if (value !== null)
-      await panel
-        .getByRole('textbox', { name: 'Value', exact: true })
-        .fill(value);
+    if (value !== null) await setValue(page, value);
     else
       await expect(
         panel.getByRole('textbox', { name: 'Value', exact: true })
@@ -250,7 +198,7 @@ test('date filters use the calendar and reset incompatible field values', async 
   });
   await page.getByRole('button', { name: 'Filter', exact: true }).click();
   await page.getByRole('button', { name: 'Add a filter', exact: true }).click();
-  await page.getByRole('textbox', { name: 'Value', exact: true }).fill('Paid');
+  await setValue(page, 'Submitted');
   await choose(page, 'Field', 'Date');
   const input = page.getByRole('textbox', { name: 'Value', exact: true });
   const panel = page.getByRole('region', { name: 'Filters', exact: true });
@@ -284,16 +232,14 @@ test('same-field conditions survive apply, reopen, edit, remove, refresh and cle
 }) => {
   const panel = page.getByRole('region', { name: 'Filters', exact: true });
   await page.getByRole('button', { name: 'Add a filter', exact: true }).click();
-  await page.getByRole('textbox', { name: 'Value', exact: true }).fill('paid');
+  await choose(page, 'Condition', 'Contains');
+  await setValue(page, 'Paid');
   await page.getByRole('button', { name: 'Add a filter', exact: true }).click();
   await choose(page, 'Condition', 'Is Not', 1);
-  await page
-    .getByRole('textbox', { name: 'Value', exact: true })
-    .nth(1)
-    .fill('Paid');
+  await setValue(page, 'Paid', 1);
   await page.getByRole('button', { name: 'Apply', exact: true }).click();
   expect(await appliedFilters(page)).toEqual({
-    status: ['like', '%paid%', '!=', 'Paid'],
+    status: ['like', '%Paid%', '!=', 'Paid'],
   });
   await expect
     .poll(() =>
@@ -314,9 +260,7 @@ test('same-field conditions survive apply, reopen, edit, remove, refresh and cle
   await panel
     .getByRole('button', { name: 'Remove filter 1', exact: true })
     .click();
-  await panel
-    .getByRole('textbox', { name: 'Value', exact: true })
-    .fill('Unpaid');
+  await setValue(page, 'Unpaid');
   await dismissFilters(page);
   expect(await appliedFilters(page)).toEqual({ status: ['!=', 'Unpaid'] });
   await page
@@ -342,7 +286,7 @@ test('filtering on page two returns to the first page of matching records', asyn
   await page.getByRole('button', { name: 'Filter', exact: true }).click();
   await page.getByRole('button', { name: 'Add a filter', exact: true }).click();
   await choose(page, 'Condition', 'Is');
-  await page.getByRole('textbox', { name: 'Value', exact: true }).fill('Paid');
+  await setValue(page, 'Paid');
   await page.getByRole('button', { name: 'Apply', exact: true }).click();
   await expect(
     page.getByRole('spinbutton', { name: 'Page number', exact: true })
@@ -355,14 +299,6 @@ async function dismissFilters(page: Page) {
   await expect(
     page.getByRole('region', { name: 'Filters', exact: true })
   ).toBeHidden();
-}
-
-async function choose(page: Page, control: string, option: string, index = 0) {
-  await page
-    .getByRole('combobox', { name: control, exact: true })
-    .nth(index)
-    .click();
-  await page.getByRole('option', { name: option, exact: true }).click();
 }
 
 for (const [field, value, expected] of [
@@ -384,10 +320,7 @@ for (const [field, value, expected] of [
     await choose(page, 'Field', field);
     await choose(page, 'Condition', 'Is');
     if (field === 'Track Inventory') await choose(page, 'Value', value);
-    else
-      await page
-        .getByRole('textbox', { name: 'Value', exact: true })
-        .fill(value);
+    else await setValue(page, value);
     await page.getByRole('button', { name: 'Apply', exact: true }).click();
     const query = await appliedFilters(page);
     const numericExpected = JSON.parse(JSON.stringify(expected));
@@ -568,13 +501,13 @@ test('hidden filters survive visible removal and Clear; drafts do not change the
     f.setFilter({ status: ['!=', 'Cancelled'] }, true);
   });
   await page.getByRole('button', { name: 'Add a filter', exact: true }).click();
-  await page.getByRole('textbox', { name: 'Value', exact: true }).fill('paid');
+  await setValue(page, 'Paid');
   await expect(
     page.getByRole('button', { name: 'Filter', exact: true })
   ).toBeVisible();
   await page.getByRole('button', { name: 'Apply', exact: true }).click();
   expect(await appliedFilters(page)).toEqual({
-    status: ['!=', 'Cancelled', 'like', '%paid%'],
+    status: ['!=', 'Cancelled', '=', 'Paid'],
   });
   await page
     .getByRole('button', { name: '1 filter applied', exact: true })
@@ -586,7 +519,7 @@ test('hidden filters survive visible removal and Clear; drafts do not change the
   expect(await appliedFilters(page)).toEqual({ status: ['!=', 'Cancelled'] });
   await page.getByRole('button', { name: 'Filter', exact: true }).click();
   await page.getByRole('button', { name: 'Add a filter', exact: true }).click();
-  await page.getByRole('textbox', { name: 'Value', exact: true }).fill('paid');
+  await setValue(page, 'Paid');
   await page.getByRole('button', { name: 'Clear', exact: true }).click();
   expect(await appliedFilters(page)).toEqual({ status: ['!=', 'Cancelled'] });
 });
@@ -595,16 +528,14 @@ test('outside click applies changes and zero matches can be cleared', async ({
   page,
 }) => {
   await page.getByRole('button', { name: 'Add a filter', exact: true }).click();
-  await page
-    .getByRole('textbox', { name: 'Value', exact: true })
-    .fill('missing');
+  await setValue(page, 'Saved');
   await page
     .getByRole('heading', { name: 'Sales Invoice', exact: true })
     .click();
   await expect(
     page.getByRole('region', { name: 'Filters', exact: true })
   ).toBeHidden();
-  expect(await appliedFilters(page)).toEqual({ status: ['like', '%missing%'] });
+  expect(await appliedFilters(page)).toEqual({ status: ['=', 'Saved'] });
   await expect(
     page.getByText('No entries found', { exact: true })
   ).toBeVisible();
@@ -636,10 +567,7 @@ for (const [condition, value, matches] of databaseCases) {
       .click();
     await choose(page, 'Field', 'User Remark');
     await choose(page, 'Condition', condition);
-    if (value !== null)
-      await page
-        .getByRole('textbox', { name: 'Value', exact: true })
-        .fill(value);
+    if (value !== null) await setValue(page, value);
     await page.getByRole('button', { name: 'Apply', exact: true }).click();
     await expect
       .poll(() =>
@@ -710,6 +638,7 @@ async function useFilterDatabase(page: Page, schemaName = 'JournalEntry') {
 const storedFieldCases = [
   ['JournalEntry', 'Entry No', 'Contains', 'Filter 3 ', ['3']],
   ['JournalEntry', 'Date', 'Greater Than', '2024-01-03', ['3', '4']],
+  ['JournalEntry', 'Entry Type', 'Is', 'Cash Entry', ['3', '4']],
   ['JournalEntry', 'Number Series', 'Is', 'JV-', ['0', '2', '4']],
   ['JournalEntry', 'Created By', 'Is', 'Administrator', ['0', '2', '4']],
   ['JournalEntry', 'Modified By', 'Is', 'Guest', ['1', '3']],
@@ -745,7 +674,11 @@ for (const [schema, field, condition, value, matches] of storedFieldCases) {
       .click();
     await choose(page, 'Field', field);
     await choose(page, 'Condition', condition);
-    if (field === 'Submitted' || field === 'Cancelled')
+    if (
+      field === 'Submitted' ||
+      field === 'Cancelled' ||
+      field === 'Entry Type'
+    )
       await choose(page, 'Value', value);
     else if (field === 'Date' || field === 'Created' || field === 'Modified') {
       const date = value.slice(0, 10);
@@ -760,10 +693,7 @@ for (const [schema, field, condition, value, matches] of storedFieldCases) {
         await time.fill('12:00:00');
         await time.press('Enter');
       }
-    } else
-      await page
-        .getByRole('textbox', { name: 'Value', exact: true })
-        .fill(value);
+    } else await setValue(page, value);
     await page.getByRole('button', { name: 'Apply', exact: true }).click();
     await expect
       .poll(() =>

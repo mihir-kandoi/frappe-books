@@ -108,7 +108,7 @@ jobs:
           yarn test
           yarn typecheck
           yarn playwright install --with-deps chromium
-          yarn test:ui tests/ui/filter-dropdown.spec.ts
+          yarn test:ui tests/ui/filter-dropdown.spec.ts tests/ui/filter-value-input.spec.ts
 
       - name: Check Python style
         run: |

@@ -332,11 +332,23 @@ export function getMakeReturnDocAction(fyo: Fyo): Action {
   };
 }
 
-export function getTransactionStatusColumn(): ColumnConfig {
+export function getTransactionStatusColumn(invoice = true): ColumnConfig {
   return {
     label: t`Status`,
     fieldname: 'status',
     fieldtype: 'Select',
+    options: (invoice
+      ? [
+          'Saved',
+          'Unpaid',
+          'PartlyPaid',
+          'Paid',
+          'Return',
+          'ReturnIssued',
+          'Cancelled',
+        ]
+      : ['Saved', 'Submitted', 'Return', 'ReturnIssued', 'Cancelled']
+    ).map((value) => ({ value, label: getStatusText(value as InvoiceStatus) })),
     render(doc) {
       const status = getDocStatus(doc) as InvoiceStatus;
       const color = statusColor[status] ?? 'gray';
@@ -721,6 +733,10 @@ export function getDocStatusListColumn(): ColumnConfig {
     label: t`Status`,
     fieldname: 'status',
     fieldtype: 'Select',
+    options: ['Saved', 'Submitted', 'Cancelled'].map((value) => ({
+      value,
+      label: getStatusText(value as DocStatus),
+    })),
     render(doc) {
       const status = getDocStatus(doc);
       const color = statusColor[status] ?? 'gray';
@@ -743,6 +759,10 @@ export function getLoyaltyProgramStatusColumn(): ColumnConfig {
     label: t`Status`,
     fieldname: 'status',
     fieldtype: 'Select',
+    options: ['Active', 'Expired', 'Maxed'].map((value) => ({
+      value,
+      label: getLoyaltyProgramStatusText(value),
+    })),
     render(doc) {
       const status = getLoyaltyProgramStatus(doc);
       const color = loyaltyProgramStatusColor[status] ?? 'gray';

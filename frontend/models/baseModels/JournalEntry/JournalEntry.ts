@@ -1,4 +1,4 @@
-import { Fyo, t } from 'fyo';
+import { Fyo } from 'fyo';
 import { Doc } from 'fyo/model/doc';
 import {
   Action,
@@ -8,11 +8,9 @@ import {
   ListViewSettings,
 } from 'fyo/model/types';
 import {
-  getDocStatus,
+  getDocStatusListColumn,
   getLedgerLinkAction,
   getNumberSeries,
-  getStatusText,
-  statusColor,
 } from 'models/helpers';
 import { Transactional } from 'models/Transactional/Transactional';
 
@@ -47,20 +45,7 @@ export class JournalEntry extends Transactional {
     return {
       columns: [
         'name',
-        {
-          label: t`Status`,
-          fieldname: 'status',
-          fieldtype: 'Select',
-          render(doc) {
-            const status = getDocStatus(doc);
-            const color = statusColor[status] ?? 'gray';
-            const label = getStatusText(status);
-
-            return {
-              template: `<Badge class="text-xs" color="${color}">${label}</Badge>`,
-            };
-          },
-        },
+        getDocStatusListColumn(),
         'date',
         'entryType',
         'referenceNumber',

@@ -164,6 +164,8 @@ test('unknown fields fail and number series keeps its own query field', () => {
     numberSeries: ['like', '%INV-%'],
   });
   assert.equal(defaultCondition(field('Int')), '=');
+  for (const type of ['Select', 'Link', 'DynamicLink', 'Check'])
+    assert.equal(defaultCondition(field(type)), '=');
   assert.equal(defaultCondition(field('Text')), 'like');
 });
 test('merging user filters cannot replace base restrictions or mutate inputs', () => {

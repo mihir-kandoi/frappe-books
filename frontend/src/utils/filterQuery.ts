@@ -156,7 +156,9 @@ export function conditionsForField(field?: Field) {
 }
 
 export function defaultCondition(field?: Field): FilterCondition {
-  return conditionsForField(field).some(({ value }) => value === 'like')
+  return ['Data', 'Text', 'Color', 'AutoComplete'].includes(
+    field?.fieldtype ?? 'Data'
+  )
     ? 'like'
     : '=';
 }

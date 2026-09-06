@@ -60,58 +60,18 @@
               v-if="isValuelessCondition(filter.condition)"
               class="col-span-2 h-8 sm:col-span-1"
             />
-            <Select
-              v-else-if="fieldFor(filter)?.fieldtype === 'Check'"
-              :border="true"
-              :show-label="true"
-              class="col-span-2 min-w-0 sm:col-span-1"
-              :df="{
-                fieldname: 'value',
-                label: t`Value`,
-                fieldtype: 'Select',
-                options: checkOptions,
-              }"
-              :value="
-                filter.value === true
-                  ? '1'
-                  : filter.value === false
-                    ? '0'
-                    : String(filter.value ?? '')
-              "
-              @change="(value) => updateFilter(filter, 'value', value)"
-            />
-            <component
-              :is="
-                fieldFor(filter)?.fieldtype === 'Date'
-                  ? 'FrappeDatePicker'
-                  : 'FrappeDateTimePicker'
-              "
-              v-else-if="
-                ['Date', 'Datetime'].includes(fieldFor(filter)?.fieldtype ?? '')
-              "
+            <FilterValueInput
+              v-else
               :key="filter.fieldname"
               class="col-span-2 min-w-0 sm:col-span-1"
-              variant="outline"
-              size="md"
-              side="bottom"
-              align="start"
-              :label="t`Value`"
-              :clearable="true"
-              :model-value="String(filter.value ?? '')"
-              @change="(value: string) => updateFilter(filter, 'value', value)"
-            />
-            <FrappeTextInput
-              v-else
-              class="col-span-2 min-w-0 sm:col-span-1"
-              variant="outline"
-              size="md"
-              :label="t`Value`"
-              :placeholder="t`Value`"
-              :model-value="String(filter.value ?? '')"
-              @update:model-value="
-                (value) => updateFilter(filter, 'value', value)
+              :field="fieldFor(filter)"
+              :condition="filter.condition"
+              :value="filter.value"
+              :filters="filterSet.rows"
+              @change="
+                (value: FilterValue) => updateFilter(filter, 'value', value)
               "
-              @keydown.enter.stop.prevent="applyFilters"
+              @apply="applyFilters"
             />
             <FrappeButton
               icon="lucide-x"
@@ -156,16 +116,11 @@
 </template>
 <script lang="ts">
 import { Field } from 'schemas/types';
-import {
-  Button as FrappeButton,
-  DatePicker as FrappeDatePicker,
-  DateTimePicker as FrappeDateTimePicker,
-  Popover as FrappePopover,
-  TextInput as FrappeTextInput,
-} from 'frappe-ui';
+import { Button as FrappeButton, Popover as FrappePopover } from 'frappe-ui';
 import { fyo } from 'src/initFyo';
 import { defineComponent } from 'vue';
 import Select from './Controls/Select.vue';
+import FilterValueInput from './FilterValueInput.vue';
 import { QueryFilter } from 'utils/db/types';
 import { t } from 'fyo';
 import { getFilterFields, getFieldLabel } from 'src/utils/filterFields';
@@ -184,9 +139,7 @@ export default defineComponent({
   name: 'FilterDropdown',
   components: {
     FrappePopover,
-    FrappeTextInput,
-    FrappeDatePicker,
-    FrappeDateTimePicker,
+    FilterValueInput,
     Select,
     FrappeButton,
   },
@@ -215,12 +168,6 @@ export default defineComponent({
     },
     explicitFilters(): FilterRow[] {
       return this.filterSet.rows.filter((row) => !row.implicit);
-    },
-    checkOptions() {
-      return [
-        { label: t`Yes`, value: '1' },
-        { label: t`No`, value: '0' },
-      ];
     },
     filterAppliedMessage(): string {
       return this.activeFilterCount === 1
@@ -279,16 +226,23 @@ export default defineComponent({
       key: K,
       value: FilterRow[K]
     ) {
+      const previousValue = row[key];
       row[key] = value;
       this.error = '';
       if (key === 'fieldname') {
         row.value = '';
-        if (
-          !this.conditionsFor(row).some(
-            (option) => option.value === row.condition
-          )
-        ) {
-          row.condition = defaultCondition(this.fieldFor(row));
+        row.condition = defaultCondition(this.fieldFor(row));
+      }
+      if (key === 'value' && previousValue !== value) {
+        for (const dependent of this.filterSet.rows) {
+          const field = this.fieldFor(dependent);
+          if (
+            !dependent.implicit &&
+            field?.fieldtype === 'DynamicLink' &&
+            field.references === row.fieldname
+          ) {
+            dependent.value = '';
+          }
         }
       }
     },

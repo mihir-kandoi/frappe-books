@@ -46,9 +46,9 @@ function matchesCondition(
     case '!=':
       return label !== value && status !== value;
     case 'like':
-      return matchesPattern(label, value);
+      return matchesPattern(label, value) || matchesPattern(status, value);
     case 'not like':
-      return !matchesPattern(label, value);
+      return !matchesPattern(label, value) && !matchesPattern(status, value);
     case '>':
       return label > value;
     case '<':

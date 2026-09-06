@@ -5,6 +5,12 @@ Greater Than, Less Than, Is Empty, and Is Not Empty. Rules use AND, including
 multiple rules on the same field. Clear removes user rules and preserves implicit
 and route restrictions. Apply, Enter in text inputs, Escape, and outside clicks
 apply complete rules. Invalid query values keep the editor open with an error.
+Value controls follow [Frappe's field metadata approach](https://github.com/frappe/frappe/blob/develop/frappe/public/js/frappe/ui/filters/filter.js).
+Select fields show all configured labels and submit their stored values. Computed
+Status fields supply their own choices. Select and Link fields default to Is.
+Link equality filters offer record search. Contains uses text. Dynamic Links offer
+record search after an equality filter selects their reference type. Changing that
+type clears dependent values. Autocomplete fields retain suggestions and typed input.
 Date and Datetime fields use the native Frappe UI calendar and date-time pickers.
 Enter commits a picker value; Escape closes the nested picker first. Both leave
 the filter editor open. Empty conditions do not show a value picker.
@@ -32,7 +38,7 @@ or computed values need an explicit filter opt-in. Table, attachment, button,
 secret, and internal metadata fields remain excluded.
 
 Run frontend unit tests with `yarn --cwd frontend test`. Run browser tests with
-`yarn --cwd frontend test:ui tests/ui/filter-dropdown.spec.ts`. Set
+`yarn --cwd frontend test:ui tests/ui/filter-dropdown.spec.ts tests/ui/filter-value-input.spec.ts`. Set
 `BOOKS_BROWSER_CHANNEL=chrome` to use an installed Chrome; otherwise install
 Playwright's Chromium with `yarn --cwd frontend playwright install chromium`.
 

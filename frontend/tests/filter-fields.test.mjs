@@ -66,3 +66,57 @@ test('unverified read-only fields, computed values, internal metadata and opt-ou
     ['name']
   );
 });
+
+for (const [schemaName, values] of [
+  [
+    'SalesInvoice',
+    [
+      'Saved',
+      'Unpaid',
+      'PartlyPaid',
+      'Paid',
+      'Return',
+      'ReturnIssued',
+      'Cancelled',
+    ],
+  ],
+  ['JournalEntry', ['Saved', 'Submitted', 'Cancelled']],
+  ['Shipment', ['Saved', 'Submitted', 'Return', 'ReturnIssued', 'Cancelled']],
+  ['LoyaltyProgram', ['Active', 'Expired', 'Maxed']],
+]) {
+  test(`${schemaName} supplies stored status values and display labels to the filter`, async () => {
+    const fyo = await makeFyo();
+    const fields = getFilterFields(
+      fyo.schemaMap[schemaName].fields,
+      fyo.models[schemaName].getListViewSettings?.(fyo)?.columns
+    );
+    const status = fields.find((field) => field.fieldname === 'status');
+    assert.deepEqual(
+      status.options.map((option) => option.value),
+      values
+    );
+    assert.ok(status.options.every((option) => option.label));
+    if (schemaName === 'SalesInvoice')
+      assert.equal(
+        status.options.find((option) => option.value === 'PartlyPaid').label,
+        'Partly Paid'
+      );
+  });
+}
+
+test('stored Select fields retain all configured choices and labels', async () => {
+  const fyo = await makeFyo();
+  for (const schema of Object.values(fyo.schemaMap)) {
+    const fields = getFilterFields(schema.fields);
+    for (const field of fields.filter(
+      (field) => field.fieldtype === 'Select'
+    )) {
+      assert.deepEqual(
+        field.options,
+        schema.fields.find((original) => original.fieldname === field.fieldname)
+          .options,
+        `${schema.name}.${field.fieldname}`
+      );
+    }
+  }
+});

@@ -15,7 +15,7 @@ export class Shipment extends StockTransfer {
     return {
       columns: [
         'name',
-        getTransactionStatusColumn(),
+        getTransactionStatusColumn(false),
         'party',
         'date',
         'grandTotal',

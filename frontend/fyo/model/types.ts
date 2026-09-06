@@ -96,6 +96,7 @@ export interface RenderData {
 }
 
 export type ColumnConfig = {
+  options?: SelectOption[];
   label: string;
   fieldtype: FieldType;
   fieldname: string;
