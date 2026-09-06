@@ -2,12 +2,16 @@
 
 from collections import defaultdict
 from dataclasses import dataclass
+from decimal import Decimal
 
 import frappe
 from frappe import _
 from frappe.utils import getdate
 
 from frappe_books.accounting.money import as_decimal, rounded
+
+# Differences at or above this size are posting errors, not rounding.
+ROUND_OFF_LIMIT = Decimal("1")
 
 
 @dataclass(frozen=True)
@@ -29,23 +33,27 @@ class LedgerPosting:
 		self._add(self.credits, account, amount, party)
 
 	def post(self):
-		self._validate()
-		for entries, fieldname in ((self.debits, "debit"), (self.credits, "credit")):
+		debits = _rounded_entries(self.debits)
+		credits = _rounded_entries(self.credits)
+		_add_round_off(debits, credits)
+		_validate(debits, credits)
+		for entries, fieldname in ((debits, "debit"), (credits, "credit")):
 			for key, amount in entries.items():
-				if rounded(amount) == 0:
-					continue
-				values = {
-					"doctype": "Books Ledger Entry",
-					"posting_date": _posting_date(self.voucher),
-					"party": key.party,
-					"account": key.account,
-					"debit": 0,
-					"credit": 0,
-					"voucher_type": self.voucher.doctype,
-					"voucher_no": self.voucher.name,
-				}
-				values[fieldname] = rounded(amount)
-				frappe.get_doc(values).insert(ignore_permissions=True)
+				self._insert_entry(key, fieldname, amount)
+
+	def _insert_entry(self, key, fieldname, amount):
+		values = {
+			"doctype": "Books Ledger Entry",
+			"posting_date": _posting_date(self.voucher),
+			"party": key.party,
+			"account": key.account,
+			"debit": 0,
+			"credit": 0,
+			"voucher_type": self.voucher.doctype,
+			"voucher_no": self.voucher.name,
+		}
+		values[fieldname] = amount
+		frappe.get_doc(values).insert(ignore_permissions=True)
 
 	def _add(self, entries, account, amount, party):
 		amount = as_decimal(amount)
@@ -55,14 +63,45 @@ class LedgerPosting:
 			frappe.throw(_("Ledger amounts cannot be negative."))
 		entries[EntryKey(account, party)] += amount
 
-	def _validate(self):
-		debit = rounded(sum(self.debits.values(), as_decimal(0)))
-		credit = rounded(sum(self.credits.values(), as_decimal(0)))
-		if debit != credit:
-			frappe.throw(_("Total debit {0} must equal total credit {1}.").format(debit, credit))
-		if debit == 0:
-			frappe.throw(_("Ledger posting total must be greater than zero."))
-		_validate_leaf_accounts({key.account for key in self.debits | self.credits})
+
+def _rounded_entries(entries):
+	rounded_entries = defaultdict(as_decimal)
+	for key, amount in entries.items():
+		if rounded(amount) != 0:
+			rounded_entries[key] = rounded(amount)
+	return rounded_entries
+
+
+def _add_round_off(debits, credits):
+	"""Absorb the cents lost when each entry is rounded on its own."""
+	difference = _total(debits) - _total(credits)
+	if difference == 0:
+		return
+	if abs(difference) >= ROUND_OFF_LIMIT:
+		_throw_unbalanced(_total(debits), _total(credits))
+	account = frappe.db.get_single_value("Books Accounting Settings", "round_off_account")
+	if not account:
+		frappe.throw(_("Set a round-off account in Books Accounting Settings."))
+	entries = credits if difference > 0 else debits
+	entries[EntryKey(account, None)] += abs(difference)
+
+
+def _validate(debits, credits):
+	debit = _total(debits)
+	credit = _total(credits)
+	if debit != credit:
+		_throw_unbalanced(debit, credit)
+	if debit == 0:
+		frappe.throw(_("Ledger posting total must be greater than zero."))
+	_validate_leaf_accounts({key.account for key in debits | credits})
+
+
+def _total(entries):
+	return sum(entries.values(), as_decimal(0))
+
+
+def _throw_unbalanced(debit, credit):
+	frappe.throw(_("Total debit {0} must equal total credit {1}.").format(debit, credit))
 
 
 def reverse_entries(voucher):
