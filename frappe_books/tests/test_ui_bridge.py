@@ -420,6 +420,12 @@ class IntegrationTestUiBridge(IntegrationTestCase):
 		self.assertEqual(rows[0]["parent"], invoice_name)
 		self.assertEqual(rows[0]["parentSchemaName"], "SalesInvoice")
 
+	def test_calls_with_wrong_argument_counts_are_rejected(self):
+		with self.assertRaises(frappe.ValidationError):
+			self.bridge.call("get", [])
+		with self.assertRaises(frappe.ValidationError):
+			BooksBespokeQueries().call("getTopExpenses", ["2026-01-01"])
+
 	def test_list_reads_return_every_matching_row(self):
 		prefix = unique_name("Bridge Color")
 		for index in range(501):
