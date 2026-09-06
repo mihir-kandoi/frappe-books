@@ -121,15 +121,33 @@ class BooksBespokeQueries:
 	def return_balance(self, source_schema: str, name: str):
 		doc = frappe.get_doc(target_doctype(source_schema), name)
 		doc.check_permission("read")
-		balances = defaultdict(lambda: {"quantity": 0.0, "batches": {}, "serialNumbers": []})
-		for row in doc.items:
-			entry = balances[row.item]
-			entry["quantity"] += abs(float(row.quantity or 0))
-			if row.get("batch"):
-				entry["batches"].setdefault(row.batch, {"quantity": 0.0, "serialNumbers": []})
-				entry["batches"][row.batch]["quantity"] += abs(float(row.quantity or 0))
-			self._add_serials(entry, row)
-		return dict(balances)
+		return_names = frappe.get_all(
+			doc.doctype,
+			filters={"return_against": name, "docstatus": 1},
+			pluck="name",
+		)
+		if not return_names:
+			return None
+
+		returned_rows = frappe.get_all(
+			doc.meta.get_field("items").options,
+			filters={"parent": ["in", return_names], "parenttype": doc.doctype, "parentfield": "items"},
+			fields=["item", "quantity", "batch", "serial_number"],
+		)
+		if not returned_rows:
+			return None
+
+		original_items = self._return_items(doc.items)
+		returned_items = self._return_items(returned_rows)
+		balances = {}
+		for item, original in original_items.items():
+			returned = returned_items.get(item, {})
+			balances[item] = self._remaining_return(original, returned)
+			balances[item]["batches"] = {
+				batch: self._remaining_return(values, returned.get("batches", {}).get(batch, {}))
+				for batch, values in original["batches"].items()
+			}
+		return balances
 
 	def pos_transacted_amount(self, from_date, to_date, _last_shift_closing_date=None):
 		"""Return the same expected amounts the closing shift stores on the server."""
@@ -155,6 +173,31 @@ class BooksBespokeQueries:
 			filters=filters,
 			fields=["posting_date", "account", "debit", "credit"],
 		)
+
+	def _return_items(self, rows):
+		items = defaultdict(lambda: {"quantity": as_decimal(0), "batches": {}, "serialNumbers": []})
+		for row in rows:
+			entry = items[row.item]
+			quantity = abs(as_decimal(row.quantity))
+			entry["quantity"] += quantity
+			if row.get("batch"):
+				batch = entry["batches"].setdefault(
+					row.batch, {"quantity": as_decimal(0), "serialNumbers": []}
+				)
+				batch["quantity"] += quantity
+			self._add_serials(entry, row)
+		return items
+
+	def _remaining_return(self, original, returned):
+		remaining = max(original["quantity"] - returned.get("quantity", 0), 0)
+		returned_serials = set(returned.get("serialNumbers", []))
+		return {
+			# The interface represents return quantities as negative values.
+			"quantity": -float(remaining),
+			"serialNumbers": [
+				serial for serial in original["serialNumbers"] if serial not in returned_serials
+			],
+		}
 
 	def _add_serials(self, entry, row):
 		serials = [
