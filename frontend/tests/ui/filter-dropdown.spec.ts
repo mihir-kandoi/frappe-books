@@ -476,51 +476,7 @@ for (const [condition, value, matches] of databaseCases) {
   test(`Frappe database: User Remark ${condition} returns matching records`, async ({
     page,
   }) => {
-    test.skip(
-      !process.env.BOOKS_FILTER_TEST_BENCH ||
-        !process.env.BOOKS_FILTER_TEST_SITE,
-      'Requires an explicit Frappe test bench and site'
-    );
-    let pending: Promise<unknown> = Promise.resolve();
-    await page.route('**/__filter_database_test', async (route) => {
-      const result = pending.then(() =>
-        promisify(execFile)(
-          'bench',
-          [
-            '--site',
-            process.env.BOOKS_FILTER_TEST_SITE!,
-            'execute',
-            'frappe_books.tests.test_filters.query_filter_fixture',
-            '--kwargs',
-            JSON.stringify({ filters: route.request().postData() }),
-          ],
-          {
-            cwd: process.env.BOOKS_FILTER_TEST_BENCH,
-            env: {
-              ...process.env,
-              PYTHONPATH: path.resolve(__dirname, '../../..'),
-            },
-          }
-        )
-      );
-      pending = result.catch(() => {});
-      const { stdout } = await result.catch((error) => {
-        throw new Error(`${error.message}\n${error.stdout}\n${error.stderr}`);
-      });
-      await route.fulfill({ json: JSON.parse(stdout) });
-    });
-    await page.evaluate(() => {
-      const state = (window as any).filterFixture.state;
-      state.useDatabase = true;
-      state.schemaName = 'JournalEntry';
-    });
-    await expect
-      .poll(() =>
-        page.evaluate(
-          () => (window as any).filterFixture.list.value.data.length
-        )
-      )
-      .toBe(5);
+    await useFilterDatabase(page);
     await page.getByRole('button', { name: 'Filter', exact: true }).click();
     await page
       .getByRole('button', { name: 'Add a filter', exact: true })
@@ -545,5 +501,111 @@ for (const [condition, value, matches] of databaseCases) {
       await expect(
         page.getByText(new RegExp(`^Filter ${index} `))
       ).toBeVisible();
+  });
+}
+
+async function useFilterDatabase(page: Page, schemaName = 'JournalEntry') {
+  test.skip(
+    !process.env.BOOKS_FILTER_TEST_BENCH || !process.env.BOOKS_FILTER_TEST_SITE,
+    'Requires an explicit Frappe test bench and site'
+  );
+  let pending: Promise<unknown> = Promise.resolve();
+  await page.route('**/__filter_database_test', async (route) => {
+    const result = pending.then(() =>
+      promisify(execFile)(
+        'bench',
+        [
+          '--site',
+          process.env.BOOKS_FILTER_TEST_SITE!,
+          'execute',
+          'frappe_books.tests.test_filters.query_filter_fixture',
+          '--kwargs',
+          JSON.stringify({
+            filters: route.request().postData(),
+            schema_name: schemaName,
+          }),
+        ],
+        {
+          cwd: process.env.BOOKS_FILTER_TEST_BENCH,
+          env: {
+            ...process.env,
+            PYTHONPATH: path.resolve(__dirname, '../../..'),
+          },
+        }
+      )
+    );
+    pending = result.catch(() => {});
+    const { stdout } = await result.catch((error) => {
+      throw new Error(`${error.message}\n${error.stdout}\n${error.stderr}`);
+    });
+    await route.fulfill({ json: JSON.parse(stdout) });
+  });
+  await page.keyboard.press('Escape');
+  await page.evaluate(async (schemaName) => {
+    const fixture = (window as any).filterFixture;
+    fixture.state.useDatabase = true;
+    fixture.state.schemaName = schemaName;
+    await fixture.list.value.updateData({});
+  }, schemaName);
+  await expect
+    .poll(() =>
+      page.evaluate(() => (window as any).filterFixture.list.value.data.length)
+    )
+    .toBe(5);
+}
+
+const storedFieldCases = [
+  ['JournalEntry', 'Entry No', 'Contains', 'Filter 3 ', ['3']],
+  ['JournalEntry', 'Number Series', 'Is', 'JV-', ['0', '2', '4']],
+  ['JournalEntry', 'Created By', 'Is', 'Administrator', ['0', '2', '4']],
+  ['JournalEntry', 'Modified By', 'Is', 'Guest', ['1', '3']],
+  [
+    'JournalEntry',
+    'Created',
+    'Greater Than',
+    '2024-01-03T12:00:00',
+    ['3', '4'],
+  ],
+  [
+    'JournalEntry',
+    'Modified',
+    'Greater Than',
+    '2024-02-03T12:00:00',
+    ['3', '4'],
+  ],
+  ['JournalEntry', 'Submitted', 'Is', 'No', ['0', '3']],
+  ['JournalEntry', 'Cancelled', 'Is', 'Yes', ['2']],
+  ['SalesInvoice', 'Invoice No', 'Contains', 'Filter invoice 3 ', ['3']],
+  ['SalesInvoice', 'Net Total', 'Is', '0', ['0']],
+  ['SalesInvoice', 'Grand Total', 'Greater Than', '112', ['2', '3', '4']],
+  ['SalesInvoice', 'Base Grand Total', 'Less Than', '448', ['0', '1']],
+] as const;
+for (const [schema, field, condition, value, matches] of storedFieldCases) {
+  test(`stored field ${schema}.${field} returns matching Frappe records`, async ({
+    page,
+  }) => {
+    await useFilterDatabase(page, schema);
+    await page.getByRole('button', { name: 'Filter', exact: true }).click();
+    await page
+      .getByRole('button', { name: 'Add a filter', exact: true })
+      .click();
+    await choose(page, 'Field', field);
+    await choose(page, 'Condition', condition);
+    if (field === 'Submitted' || field === 'Cancelled')
+      await choose(page, 'Value', value);
+    else
+      await page
+        .getByRole('textbox', { name: 'Value', exact: true })
+        .fill(value);
+    await page.getByRole('button', { name: 'Apply', exact: true }).click();
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          (window as any).filterFixture.list.value.data
+            .map((row: any) => row.name.match(/^Filter (?:invoice )?(\d) /)[1])
+            .sort()
+        )
+      )
+      .toEqual(matches);
   });
 }

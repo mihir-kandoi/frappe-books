@@ -269,16 +269,7 @@ export default defineComponent({
       if (this.emitFilterChange()) this.isOpen = false;
     },
     setFilter(filters: QueryFilter, implicit = false) {
-      const query = { ...filters };
-      if (
-        'name' in query &&
-        !this.fields.some((field) => field.fieldname === 'name') &&
-        this.fields.some((field) => field.fieldname === 'numberSeries')
-      ) {
-        query.numberSeries = query.name;
-        delete query.name;
-      }
-      this.filterSet.setQuery(query, implicit);
+      this.filterSet.setQuery(filters, implicit);
       this.emitFilterChange();
     },
     emitFilterChange(): boolean {

@@ -1,6 +1,22 @@
 import type { ListViewColumn } from 'fyo/model/types';
 import { Field, FieldTypeEnum } from 'schemas/types';
 
+// These values have direct database mappings. Other read-only values may be derived.
+const storedReadOnlyFields = new Set([
+  'name',
+  'netTotal',
+  'grandTotal',
+  'baseGrandTotal',
+]);
+const auditFields = new Set([
+  'created',
+  'modified',
+  'createdBy',
+  'modifiedBy',
+  'submitted',
+  'cancelled',
+]);
+
 export function getFilterFields(
   fields: Field[],
   columns: ListViewColumn[] = []
@@ -24,9 +40,9 @@ export function getFilterFields(
 
     if (typeof f.filter === 'boolean') return f.filter;
 
-    if (f.computed || f.meta || f.readOnly) {
-      return false;
-    }
+    if (f.computed) return false;
+    if (f.meta) return auditFields.has(f.fieldname);
+    if (f.readOnly) return storedReadOnlyFields.has(f.fieldname);
 
     return true;
   });

@@ -156,12 +156,12 @@ for (const value of [[], ['='], ['bad', 'x'], ['=', {}], ['=', []]])
     assert.throws(() => set.setQuery({ first: 'valid', value }));
     assert.equal(set.rows[0].value, 'original');
   });
-test('unknown fields fail and invoice number series filters document names', () => {
+test('unknown fields fail and number series keeps its own query field', () => {
   const set = new FilterSet();
   set.add('numberSeries', 'like', 'INV-');
   assert.throws(() => set.toQuery([field()]));
   assert.deepEqual(set.toQuery([field('Link', 'numberSeries')]), {
-    name: ['like', '%INV-%'],
+    numberSeries: ['like', '%INV-%'],
   });
   assert.equal(defaultCondition(field('Int')), '=');
   assert.equal(defaultCondition(field('Text')), 'like');

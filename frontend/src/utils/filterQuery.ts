@@ -69,8 +69,7 @@ export class FilterSet {
       let value = parseFilterValue(field, row);
       if (row.condition === 'like' || row.condition === 'not like')
         value = `%${value}%`;
-      const fieldname =
-        row.fieldname === 'numberSeries' ? 'name' : row.fieldname;
+      const fieldname = row.fieldname;
       const previous = (query[fieldname] ?? []) as (string | number | null)[];
       query[fieldname] = [
         ...previous,

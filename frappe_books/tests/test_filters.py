@@ -8,6 +8,7 @@ from frappe.tests import IntegrationTestCase
 
 from frappe_books.tests.accounting import unique_name
 from frappe_books.ui_bridge.database import BooksDatabaseBridge
+from frappe_books.ui_bridge.mapping import target_doctype
 
 
 class IntegrationTestFilters(IntegrationTestCase):
@@ -16,7 +17,7 @@ class IntegrationTestFilters(IntegrationTestCase):
 		self.names = make_filter_entries()
 
 	def rows(self, filters, schema="JournalEntry", names=None):
-		query = {"name": ["in", names or self.names], **filters}
+		query = fixture_filters(filters, names or self.names)
 		return {row["name"] for row in self.bridge.get_all(schema, {"fields": ["name"], "filters": query})}
 
 	def assert_rows(self, filters, indices):
@@ -140,6 +141,23 @@ class IntegrationTestFilters(IntegrationTestCase):
 		self.assert_rows({"cancelled": False}, [0, 1, 3, 4])
 		self.assert_rows({"submitted": ["=", True, "!=", True]}, [])
 
+	def test_document_number_series_and_audit_fields(self):
+		self.assert_rows({"name": ["like", "Filter 3 %"]}, [3])
+		self.assert_rows({"numberSeries": ["=", "JV-"]}, [0, 2, 4])
+		self.assert_rows({"createdBy": "Administrator"}, [0, 2, 4])
+		self.assert_rows({"modifiedBy": "Guest"}, [1, 3])
+		self.assert_rows({"modified": [">", "2024-02-03 12:00:00"]}, [3, 4])
+
+	def test_stored_invoice_totals(self):
+		for schema in ("SalesInvoice", "PurchaseInvoice", "SalesQuote"):
+			names = make_filter_invoices(schema)
+			for field, step in (("netTotal", 100), ("grandTotal", 112), ("baseGrandTotal", 224)):
+				with self.subTest(schema=schema, field=field):
+					self.assertEqual(self.rows({field: ["=", 0]}, schema, names), {names[0]})
+					self.assertEqual(
+						self.rows({field: [">", step, "<", step * 4]}, schema, names), set(names[2:4])
+					)
+
 	def test_malformed_filters_are_rejected(self):
 		cases = [
 			{"userRemark": value}
@@ -183,13 +201,35 @@ def make_filter_entries():
 				"reference_number": str(index),
 				"docstatus": index % 3,
 				"creation": f"2024-01-{index + 1:02} 12:00:00",
+				"modified": f"2024-02-{index + 1:02} 12:00:00",
+				"owner": "Administrator" if index % 2 == 0 else "Guest",
+				"modified_by": "Administrator" if index % 2 == 0 else "Guest",
+				"number_series": "JV-" if index % 2 == 0 else "BANK-",
 			}
 		).db_insert()
 		names.append(name)
 	return names
 
 
-def query_filter_fixture(filters):
+def make_filter_invoices(schema="SalesInvoice"):
+	names = []
+	for index in range(5):
+		name = unique_name(f"Filter invoice {index}")
+		frappe.get_doc(
+			{
+				"doctype": target_doctype(schema),
+				"name": name,
+				"net_total": index * 100,
+				"grand_total": index * 112,
+				"base_grand_total": index * 224,
+				"number_series": "INV-",
+			}
+		).db_insert()
+		names.append(name)
+	return names
+
+
+def query_filter_fixture(filters, schema_name="JournalEntry"):
 	"""Serve browser test queries through the real adapter in a rolled-back transaction."""
 	if not frappe.conf.allow_tests:
 		frappe.throw("Filter fixtures require a test site")
@@ -197,8 +237,21 @@ def query_filter_fixture(filters):
 		filters = json.loads(filters)
 	frappe.db.savepoint("browser_filter_fixture")
 	try:
-		names = make_filter_entries()
-		query = {"name": ["in", names], **filters}
-		return BooksDatabaseBridge().get_all("JournalEntry", {"fields": ["*"], "filters": query})
+		if schema_name == "JournalEntry":
+			names = make_filter_entries()
+		elif schema_name == "SalesInvoice":
+			names = make_filter_invoices()
+		else:
+			frappe.throw("Unsupported browser filter fixture")
+		query = fixture_filters(filters, names)
+		return BooksDatabaseBridge().get_all(schema_name, {"fields": ["*"], "filters": query})
 	finally:
 		frappe.db.rollback(save_point="browser_filter_fixture")
+
+
+def fixture_filters(filters, names):
+	query = {**filters, "name": ["in", names]}
+	if "name" in filters:
+		value = filters["name"]
+		query["name"].extend(value if isinstance(value, list) else ["=", value])
+	return query

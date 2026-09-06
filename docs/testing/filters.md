@@ -20,14 +20,18 @@ semantics. Is compares the entered value without adding wildcards. Empty checks
 use Frappe's `is set` / `is not set` semantics; text NULL and empty strings count
 as empty. Date values require `YYYY-MM-DD`; Datetime values also require a time.
 Check fields offer Is / Is Not with Yes / No. Numeric and date fields omit text
-conditions. Table, attachment, button, and secret fields are excluded.
+conditions. Document numbers, net and grand totals, audit dates and users, and
+Submitted/Cancelled flags are available even when their form fields are read-only.
+Document number and Number Series query separate stored fields. Other read-only
+or computed values need an explicit filter opt-in. Table, attachment, button,
+secret, and internal metadata fields remain excluded.
 
 Run frontend unit tests with `yarn --cwd frontend test`. Run browser tests with
 `yarn --cwd frontend test:ui tests/ui/filter-dropdown.spec.ts`. Set
 `BOOKS_BROWSER_CHANNEL=chrome` to use an installed Chrome; otherwise install
 Playwright's Chromium with `yarn --cwd frontend playwright install chromium`.
 
-The eight browser/database cases require `BOOKS_FILTER_TEST_BENCH` (an absolute
+The browser/database cases require `BOOKS_FILTER_TEST_BENCH` (an absolute
 bench path) and `BOOKS_FILTER_TEST_SITE` (a dedicated site with `allow_tests=1`).
 They invoke `bench --site … execute` using arguments, load this checkout through
 `PYTHONPATH`, and roll back fixture records. They do not run without these variables.
