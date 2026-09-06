@@ -9,7 +9,6 @@ import {
   HiddenMap,
 } from 'fyo/model/types';
 import { ValidationError } from 'fyo/utils/errors';
-import { LedgerPosting } from 'models/Transactional/LedgerPosting';
 import { Defaults } from 'models/baseModels/Defaults/Defaults';
 import { Invoice } from 'models/baseModels/Invoice/Invoice';
 import { addItem, getNumberSeries } from 'models/helpers';
@@ -28,7 +27,6 @@ import {
   generateSerialNumbersForItem,
 } from './helpers';
 import { ReturnDocItem } from './types';
-import { getShipmentCOGSAmountFromSLEs } from 'reports/inventory/helpers';
 import { InvoiceItem } from 'models/baseModels/InvoiceItem/InvoiceItem';
 
 export abstract class StockTransfer extends Transfer {
@@ -206,86 +204,6 @@ export abstract class StockTransfer extends Transfer {
         toLocation,
       };
     });
-  }
-
-  override async getPosting(): Promise<LedgerPosting | null> {
-    await this.validateAccounts();
-    const stockInHand = (await this.fyo.getValue(
-      ModelNameEnum.InventorySettings,
-      'stockInHand'
-    )) as string;
-
-    const amount = await this.getPostingAmount();
-    const posting = new LedgerPosting(this, this.fyo);
-
-    if (this.isSales) {
-      const costOfGoodsSold = (await this.fyo.getValue(
-        ModelNameEnum.InventorySettings,
-        'costOfGoodsSold'
-      )) as string;
-
-      if (this.isReturn) {
-        await posting.debit(stockInHand, amount);
-        await posting.credit(costOfGoodsSold, amount);
-      } else {
-        await posting.debit(costOfGoodsSold, amount);
-        await posting.credit(stockInHand, amount);
-      }
-    } else {
-      const stockReceivedButNotBilled = (await this.fyo.getValue(
-        ModelNameEnum.InventorySettings,
-        'stockReceivedButNotBilled'
-      )) as string;
-
-      if (this.isReturn) {
-        await posting.debit(stockReceivedButNotBilled, amount);
-        await posting.credit(stockInHand, amount);
-      } else {
-        await posting.debit(stockInHand, amount);
-        await posting.credit(stockReceivedButNotBilled, amount);
-      }
-    }
-
-    await posting.makeRoundOffEntry();
-    return posting;
-  }
-
-  async getPostingAmount(): Promise<Money> {
-    if (!this.isSales) {
-      return this.grandTotal ?? this.fyo.pesa(0);
-    }
-
-    return await getShipmentCOGSAmountFromSLEs(this);
-  }
-
-  async validateAccounts() {
-    const settings: string[] = ['stockInHand'];
-    if (this.isSales) {
-      settings.push('costOfGoodsSold');
-    } else {
-      settings.push('stockReceivedButNotBilled');
-    }
-
-    const messages: string[] = [];
-    for (const setting of settings) {
-      const value = this.fyo.singles.InventorySettings?.[setting] as
-        | string
-        | undefined;
-      const field = this.fyo.getField(ModelNameEnum.InventorySettings, setting);
-      if (!value) {
-        messages.push(t`${field.label} account not set in Inventory Settings.`);
-        continue;
-      }
-
-      const exists = await this.fyo.db.exists(ModelNameEnum.Account, value);
-      if (!exists) {
-        messages.push(t`Account ${value} does not exist.`);
-      }
-    }
-
-    if (messages.length) {
-      throw new ValidationError(messages.join(' '));
-    }
   }
 
   override async validate(): Promise<void> {

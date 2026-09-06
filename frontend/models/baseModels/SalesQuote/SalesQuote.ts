@@ -21,10 +21,6 @@ export class SalesQuote extends Invoice {
   // This is an inherited method and it must keep the async from the parent
   // class
   // eslint-disable-next-line @typescript-eslint/require-await
-  async getPosting() {
-    return null;
-  }
-
   async getInvoice(): Promise<Invoice | null> {
     if (!this.isSubmitted) {
       return null;

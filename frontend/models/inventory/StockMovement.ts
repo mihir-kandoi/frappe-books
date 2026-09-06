@@ -7,7 +7,6 @@ import {
   ListViewSettings,
 } from 'fyo/model/types';
 import { ValidationError } from 'fyo/utils/errors';
-import { LedgerPosting } from 'models/Transactional/LedgerPosting';
 import { getDocStatusListColumn, getLedgerLinkAction } from 'models/helpers';
 import { ModelNameEnum } from 'models/types';
 import { Money } from 'pesa';
@@ -38,10 +37,6 @@ export class StockMovement extends Transfer {
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  override async getPosting(): Promise<LedgerPosting | null> {
-    return null;
-  }
-
   formulas: FormulaMap = {
     amount: {
       formula: () => {

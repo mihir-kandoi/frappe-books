@@ -15,29 +15,9 @@ import {
   statusColor,
 } from 'models/helpers';
 import { Transactional } from 'models/Transactional/Transactional';
-import { Money } from 'pesa';
-import { LedgerPosting } from '../../Transactional/LedgerPosting';
 
 export class JournalEntry extends Transactional {
   accounts?: Doc[];
-
-  async getPosting() {
-    const posting: LedgerPosting = new LedgerPosting(this, this.fyo);
-
-    for (const row of this.accounts ?? []) {
-      const debit = row.debit as Money;
-      const credit = row.credit as Money;
-      const account = row.account as string;
-
-      if (!debit.isZero()) {
-        await posting.debit(account, debit);
-      } else if (!credit.isZero()) {
-        await posting.credit(account, credit);
-      }
-    }
-
-    return posting;
-  }
 
   hidden: HiddenMap = {
     referenceNumber: () =>

@@ -176,40 +176,6 @@ async function makeInvoice(quantity) {
   return { invoice, row: invoice.items[0], fyo };
 }
 
-test('payment write-offs keep the From/To convention in frontend postings', async () => {
-  const fyo = await makeFyo();
-  fyo.db.exists = async () => true;
-  fyo.singles.AccountingSettings.writeOffAccount = 'Write Off';
-  for (const paymentType of ['Receive', 'Pay']) {
-    for (const writeoff of [0, 2.5]) {
-      const payment = fyo.doc.getNewDoc('Payment', {
-        paymentType,
-        account: paymentType === 'Pay' ? 'Cash' : 'Party',
-        paymentAccount: paymentType === 'Pay' ? 'Party' : 'Cash',
-        amount: fyo.pesa(157.5),
-        writeoff: fyo.pesa(writeoff),
-      });
-      const posting = await payment.getPosting();
-      posting.validate();
-      const balances = {};
-      for (const entry of posting.entries) {
-        balances[entry.account] =
-          (balances[entry.account] ?? 0) +
-          entry.debit.float -
-          entry.credit.float;
-      }
-      const sign = paymentType === 'Receive' ? 1 : -1;
-      assert.equal(balances.Cash, sign * (157.5 - writeoff));
-      assert.equal(balances.Party, -sign * 157.5);
-      assert.equal(balances['Write Off'] ?? 0, sign * writeoff || 0);
-      payment.for = [{ amount: fyo.pesa(157.5) }];
-      assert.doesNotThrow(() => payment.validateTotalReferenceAmount());
-      payment.for = [{ amount: fyo.pesa(160) }];
-      assert.throws(() => payment.validateTotalReferenceAmount());
-    }
-  }
-});
-
 test('automatic rates refresh while manual rates survive exchange changes', async () => {
   const { row, fyo } = await makeInvoice(3);
   fyo.getValue = async (_schema, _name, field) =>

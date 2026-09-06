@@ -11,13 +11,12 @@ import {
   ListViewSettings,
   ValidationMap,
 } from 'fyo/model/types';
-import { NotFoundError, ValidationError } from 'fyo/utils/errors';
+import { ValidationError } from 'fyo/utils/errors';
 import {
   getDocStatusListColumn,
   getLedgerLinkAction,
   getNumberSeries,
 } from 'models/helpers';
-import { LedgerPosting } from 'models/Transactional/LedgerPosting';
 import { Transactional } from 'models/Transactional/Transactional';
 import { ModelNameEnum } from 'models/types';
 import { Money } from 'pesa';
@@ -187,38 +186,6 @@ export class Payment extends Transactional {
     );
   }
 
-  async validateWriteOffAccount() {
-    if ((this.writeoff as Money).isZero()) {
-      return;
-    }
-
-    const writeOffAccount = this.fyo.singles.AccountingSettings!
-      .writeOffAccount as string | null | undefined;
-
-    if (!writeOffAccount) {
-      throw new NotFoundError(
-        t`Write Off Account not set.
-          Please set Write Off Account in General Settings`,
-        false
-      );
-    }
-
-    const exists = await this.fyo.db.exists(
-      ModelNameEnum.Account,
-      writeOffAccount
-    );
-
-    if (exists) {
-      return;
-    }
-
-    throw new NotFoundError(
-      t`Write Off Account ${writeOffAccount} does not exist.
-          Please set Write Off Account in General Settings`,
-      false
-    );
-  }
-
   async validateReferencesAreSet() {
     const paymentMethod = await this.paymentMethodDoc();
     const requirements = getPaymentMethodRequirements(
@@ -313,70 +280,6 @@ export class Payment extends Transactional {
     }
 
     return taxArr;
-  }
-
-  async getPosting() {
-    /**
-     * account        : From Account
-     * paymentAccount : To Account
-     *
-     * if Receive
-     * -        account : Debtors, etc
-     * - paymentAccount : Cash, Bank, etc
-     *
-     * if Pay
-     * -        account : Cash, Bank, etc
-     * - paymentAccount : Creditors, etc
-     */
-    await this.validateWriteOffAccount();
-    const posting: LedgerPosting = new LedgerPosting(this, this.fyo);
-
-    const paymentAccount = this.paymentAccount as string;
-    const account = this.account as string;
-    const amount = this.amount as Money;
-
-    const paidAmount = amount.sub(this.writeoff ?? this.fyo.pesa(0));
-    await posting.debit(
-      paymentAccount,
-      this.paymentType === 'Pay' ? amount : paidAmount
-    );
-    await posting.credit(
-      account,
-      this.paymentType === 'Pay' ? paidAmount : amount
-    );
-
-    if (this.taxes) {
-      if (this.paymentType === 'Receive') {
-        for (const tax of this.taxes) {
-          await posting.debit(tax.from_account!, tax.amount!);
-          await posting.credit(tax.account!, tax.amount!);
-        }
-      } else if (this.paymentType === 'Pay') {
-        for (const tax of this.taxes) {
-          await posting.credit(tax.from_account!, tax.amount!);
-          await posting.debit(tax.account!, tax.amount!);
-        }
-      }
-    }
-
-    await this.applyWriteOffPosting(posting);
-    return posting;
-  }
-
-  async applyWriteOffPosting(posting: LedgerPosting) {
-    const writeoff = this.writeoff as Money;
-    if (writeoff.isZero()) {
-      return posting;
-    }
-
-    const writeOffAccount = this.fyo.singles.AccountingSettings!
-      .writeOffAccount as string;
-
-    if (this.paymentType === 'Pay') {
-      await posting.credit(writeOffAccount, writeoff);
-    } else {
-      await posting.debit(writeOffAccount, writeoff);
-    }
   }
 
   async validateReferences() {

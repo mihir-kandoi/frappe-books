@@ -10,7 +10,6 @@ import type {
   StockBalanceEntry,
 } from './types';
 import type { QueryFilter } from 'utils/db/types';
-import type { StockTransfer } from 'models/inventory/StockTransfer';
 
 type Item = string;
 type Location = string;
@@ -39,73 +38,6 @@ export async function getRawStockLedgerEntries(
     orderBy: ['date', 'created', 'name'],
     order: 'asc',
   })) as RawStockLedgerEntry[];
-}
-
-export async function getShipmentCOGSAmountFromSLEs(
-  stockTransfer: StockTransfer
-) {
-  const fyo = stockTransfer.fyo;
-  const date = stockTransfer.date ?? new Date();
-  const items = (stockTransfer.items ?? []).filter((i) => i.item);
-  const itemNames = Array.from(new Set(items.map((i) => i.item))) as string[];
-
-  type Item = string;
-  type Batch = string;
-  type Location = string;
-  type Queues = Record<Item, Record<Location, Record<Batch, StockQueue>>>;
-
-  const rawSles = await getRawStockLedgerEntries(fyo, {
-    item: ['in', itemNames],
-    date: ['<=', date.toISOString()],
-  });
-
-  const q: Queues = {};
-  for (const sle of rawSles) {
-    const i = sle.item;
-    const l = sle.location;
-    const b = sle.batch ?? '-';
-
-    q[i] ??= {};
-    q[i][l] ??= {};
-    q[i][l][b] ??= new StockQueue();
-
-    const sq = q[i][l][b];
-    if (sle.quantity > 0) {
-      const rate = fyo.pesa(sle.rate);
-      sq.inward(rate.float, sle.quantity);
-    } else {
-      sq.outward(-sle.quantity);
-    }
-  }
-
-  let total = fyo.pesa(0);
-  for (const item of items) {
-    const i = item.item ?? '-';
-    const l = item.location ?? '-';
-    const b = item.batch ?? '-';
-    const stAmount = item.amount ?? 0;
-
-    if (Object.keys(q).length === 0) {
-      total = total.add(stAmount);
-      continue;
-    }
-
-    const sq = q[i][l][b];
-
-    if (!sq) {
-      total = total.add(stAmount);
-    }
-
-    const stRate = item.rate?.float ?? 0;
-    const stQuantity = item.quantity ?? 0;
-
-    const rate = sq.outward(stQuantity) ?? stRate;
-    const amount = rate * stQuantity;
-
-    total = total.add(amount);
-  }
-
-  return total;
 }
 
 export function getStockLedgerEntries(
