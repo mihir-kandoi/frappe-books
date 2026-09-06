@@ -78,7 +78,6 @@
 import Button from 'src/components/Button.vue';
 import Modal from 'src/components/Modal.vue';
 import Table from 'src/components/Controls/Table.vue';
-import { AccountTypeEnum } from 'models/baseModels/Account/types';
 import { ModelNameEnum } from 'models/types';
 import { Money } from 'pesa';
 import { POSOpeningShift } from 'models/inventory/Point of Sale/POSOpeningShift';
@@ -116,9 +115,6 @@ export default defineComponent({
   computed: {
     getDefaultCashDenominations() {
       return this.fyo.singles.Defaults?.posCashDenominations;
-    },
-    posCashAccount() {
-      return fyo.singles.POSSettings?.cashAccount;
     },
     posOpeningCashAmount(): Money {
       return this.posShiftDoc?.openingCashAmount as Money;
@@ -214,28 +210,9 @@ export default defineComponent({
           openingDate: new Date(),
         });
 
+        // The server posts the opening cash journal when the shift is saved.
         await this.posShiftDoc?.sync();
         await this.fyo.singles.POSSettings?.setAndSync('isShiftOpen', true);
-
-        if (!this.posShiftDoc?.openingCashAmount.isZero()) {
-          const jvDoc = fyo.doc.getNewDoc(ModelNameEnum.JournalEntry, {
-            entryType: 'Journal Entry',
-          });
-
-          await jvDoc.append('accounts', {
-            account: this.posCashAccount,
-            debit: this.posShiftDoc?.openingCashAmount as Money,
-            credit: this.fyo.pesa(0),
-          });
-
-          await jvDoc.append('accounts', {
-            account: AccountTypeEnum.Cash,
-            debit: this.fyo.pesa(0),
-            credit: this.posShiftDoc?.openingCashAmount as Money,
-          });
-
-          await (await jvDoc.sync()).submit();
-        }
 
         this.$emit('toggleModal', 'ShiftOpen');
       } catch (error) {

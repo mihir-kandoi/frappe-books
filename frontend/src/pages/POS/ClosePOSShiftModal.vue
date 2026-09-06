@@ -79,11 +79,7 @@ import { defineComponent } from 'vue';
 import { fyo } from 'src/initFyo';
 import { showToast } from 'src/utils/interactive';
 import { t } from 'fyo';
-import {
-  validateClosingAmounts,
-  transferPOSCashAndWriteOff,
-  getPOSOpeningShiftDoc,
-} from 'src/utils/pos';
+import { validateClosingAmounts, getPOSOpeningShiftDoc } from 'src/utils/pos';
 import { POSClosingShift } from 'models/inventory/Point of Sale/POSClosingShift';
 import { ForbiddenError } from 'fyo/utils/errors';
 
@@ -234,11 +230,8 @@ export default defineComponent({
           'openingShift',
           this.posOpeningShiftDoc?.name
         );
+        // The server posts the closing cash journal when the shift is saved.
         await this.posClosingShiftDoc?.sync();
-        await transferPOSCashAndWriteOff(
-          fyo,
-          this.posClosingShiftDoc as POSClosingShift
-        );
 
         await this.fyo.singles.POSSettings?.setAndSync('isShiftOpen', false);
         this.$emit('toggleModal', 'ShiftClose');

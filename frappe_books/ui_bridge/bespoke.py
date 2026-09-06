@@ -10,6 +10,7 @@ import frappe
 from frappe.utils import get_datetime, getdate
 
 from frappe_books.accounting.money import as_decimal, rounded
+from frappe_books.commerce.pos import transacted_amounts
 from frappe_books.setup import max_numeric_name
 from frappe_books.ui_bridge.mapping import target_doctype
 
@@ -130,12 +131,10 @@ class BooksBespokeQueries:
 		return dict(balances)
 
 	def pos_transacted_amount(self, from_date, to_date, _last_shift_closing_date=None):
-		filters = {"docstatus": 1, "date": ["between", [get_datetime(from_date), get_datetime(to_date)]]}
-		payments = frappe.get_list("Books Payment", filters=filters, fields=["payment_method", "amount"])
-		totals = defaultdict(as_decimal)
-		for payment in payments:
-			totals[payment.payment_method] += as_decimal(payment.amount)
-		return {method: rounded(amount) for method, amount in totals.items()}
+		"""Return the same expected amounts the closing shift stores on the server."""
+		if not frappe.has_permission("Books Payment", ptype="read"):
+			raise frappe.PermissionError
+		return transacted_amounts(get_datetime(from_date), get_datetime(to_date))
 
 	def last_inserted(self, source_schema: str) -> int:
 		"""Return the highest numeric name used by an autoincrement Books schema."""

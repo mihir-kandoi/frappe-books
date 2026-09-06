@@ -1,6 +1,5 @@
 import { Fyo, t } from 'fyo';
 import { ValidationError } from 'fyo/utils/errors';
-import { AccountTypeEnum } from 'models/baseModels/Account/types';
 import { Item } from 'models/baseModels/Item/Item';
 import { SalesInvoice } from 'models/baseModels/SalesInvoice/SalesInvoice';
 import { SalesInvoiceItem } from 'models/baseModels/SalesInvoiceItem/SalesInvoiceItem';
@@ -230,69 +229,6 @@ export function validateClosingAmounts(posShiftDoc: POSClosingShift) {
       );
     }
   });
-}
-
-export async function transferPOSCashAndWriteOff(
-  fyo: Fyo,
-  posShiftDoc: POSClosingShift
-) {
-  const expectedCashAmount = posShiftDoc.closingAmounts?.find(
-    (row) => row.paymentMethod === 'Cash'
-  )?.expectedAmount as Money;
-
-  if (expectedCashAmount.isZero()) {
-    return;
-  }
-
-  const closingCashAmount = posShiftDoc.closingAmounts?.find(
-    (row) => row.paymentMethod === 'Cash'
-  )?.closingAmount as Money;
-
-  const jvDoc = fyo.doc.getNewDoc(ModelNameEnum.JournalEntry, {
-    entryType: 'Journal Entry',
-  });
-
-  await jvDoc.append('accounts', {
-    account: AccountTypeEnum.Cash,
-    debit: closingCashAmount,
-  });
-
-  await jvDoc.append('accounts', {
-    account: fyo.singles.POSSettings?.cashAccount,
-    credit: closingCashAmount,
-  });
-
-  const differenceAmount = posShiftDoc?.closingAmounts?.find(
-    (row) => row.paymentMethod === 'Cash'
-  )?.differenceAmount as Money;
-
-  if (differenceAmount.isNegative()) {
-    await jvDoc.append('accounts', {
-      account: AccountTypeEnum.Cash,
-      debit: differenceAmount.abs(),
-      credit: fyo.pesa(0),
-    });
-    await jvDoc.append('accounts', {
-      account: fyo.singles.POSSettings?.writeOffAccount,
-      debit: fyo.pesa(0),
-      credit: differenceAmount.abs(),
-    });
-  }
-
-  if (!differenceAmount.isZero() && differenceAmount.isPositive()) {
-    await jvDoc.append('accounts', {
-      account: fyo.singles.POSSettings?.writeOffAccount,
-      debit: differenceAmount,
-      credit: fyo.pesa(0),
-    });
-    await jvDoc.append('accounts', {
-      account: AccountTypeEnum.Cash,
-      debit: fyo.pesa(0),
-      credit: differenceAmount,
-    });
-  }
-
-  await (await jvDoc.sync()).submit();
 }
 
 export function validateSerialNumberCount(
