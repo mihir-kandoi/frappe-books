@@ -12,6 +12,7 @@ from frappe.utils import get_datetime, getdate
 from frappe_books.accounting.money import as_decimal, rounded
 from frappe_books.commerce.pos import transacted_amounts
 from frappe_books.setup import max_numeric_name
+from frappe_books.ui_bridge.dispatch import call_handler
 from frappe_books.ui_bridge.mapping import target_doctype
 
 NUMERIC_AUTONAME = re.compile(r"format:\{#+\}")
@@ -24,7 +25,7 @@ class BooksBespokeQueries:
 		handler = getattr(self, _METHODS.get(method, ""), None)
 		if not handler:
 			frappe.throw(f"Unsupported Books query: {method}")
-		return handler(*args)
+		return call_handler(handler, method, args)
 
 	def top_expenses(self, from_date: str, to_date: str):
 		root_types = dict(frappe.get_list("Books Account", fields=["name", "root_type"], as_list=True))

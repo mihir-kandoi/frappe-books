@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 import frappe
 from frappe.utils import cast, cint, flt, get_datetime, get_system_timezone
 
+from frappe_books.ui_bridge.dispatch import call_handler
 from frappe_books.ui_bridge.mapping import (
 	SOURCE_META_TO_TARGET,
 	custom_field_mapping,
@@ -44,8 +45,7 @@ class BooksDatabaseBridge:
 			and args[0] in PROTECTED_WRITE_SCHEMAS
 		):
 			frappe.throw(f"{args[0]} records are managed by server document actions")
-		handler = getattr(self, _snake_case(method))
-		return handler(*args)
+		return call_handler(getattr(self, _snake_case(method)), method, args)
 
 	def get(self, source_schema: str, name: str, fields: str | list[str] | None = None) -> dict:
 		if source_schema == "SingleValue":
