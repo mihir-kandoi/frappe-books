@@ -187,6 +187,7 @@ import {
 import { ValidationError } from 'fyo/utils/errors';
 import { getExistingActiveSerialNumbersForItem } from 'models/inventory/helpers';
 import { filterPOSItems, findExactPOSItem } from 'src/utils/posItemSearch';
+import { getPOSInventory, validatePOSStock } from 'models/inventory/posStock';
 
 const COMPONENT_NAME = 'POS';
 
@@ -1128,22 +1129,8 @@ export default defineComponent({
           ModelNameEnum.Item,
           item.name
         )) as Item;
-        let availableQty = 0;
-        if (itemDoc.trackItem) {
-          availableQty =
-            (await fyo.db.getStockQuantity(
-              item.name,
-              undefined,
-              undefined,
-              undefined,
-              batchName
-            )) ?? 0;
-
-          const itemIndex = this.items.findIndex((i) => i.name === item.name);
-          if (itemIndex !== -1) {
-            this.items[itemIndex].availableQty = availableQty ?? 0;
-          }
-        }
+        await this.setItemQtyMap();
+        await this.setItems();
 
         const existingItems =
           this.sinvDoc.items?.filter(
@@ -1153,11 +1140,19 @@ export default defineComponent({
               !invoiceItem.isFreeItem
           ) ?? [];
 
-        await validateQty(
-          this.sinvDoc as SalesInvoice,
-          itemDoc,
-          existingItems as InvoiceItem[]
-        );
+        if (itemDoc.trackItem) {
+          const requestedQuantity = existingItems.reduce(
+            (total, row) => total + (row.quantity ?? 0),
+            quantity ?? 1
+          );
+          validatePOSStock(
+            item.name,
+            requestedQuantity,
+            this.itemQtyMap,
+            await getPOSInventory(this.fyo),
+            batchName
+          );
+        }
 
         if (existingItems.length) {
           const currentQty = existingItems[0].quantity ?? 0;
@@ -1177,8 +1172,6 @@ export default defineComponent({
 
         await this.applyPricingRule();
         await this.sinvDoc.runFormulas();
-
-        await this.setItemQtyMap();
       } catch (error) {
         showToast({
           type: 'error',
@@ -1343,6 +1336,8 @@ export default defineComponent({
         return;
       }
 
+      const inventory = await getPOSInventory(this.fyo);
+
       for (const item of shipmentDoc.items) {
         const trackItem = await fyo.getValue(
           ModelNameEnum.Item,
@@ -1354,8 +1349,7 @@ export default defineComponent({
           continue;
         }
 
-        item.location =
-          this.posProfile?.inventory ?? fyo.singles.POSSettings?.inventory;
+        item.location = inventory;
 
         item.serialNumber =
           this.itemSerialNumbers[item.item as string] ?? undefined;
@@ -1430,6 +1424,13 @@ export default defineComponent({
       this.setTotalTaxedAmount();
     },
     async validate() {
+      // A payment retry must not check stock that was already shipped.
+      if (this.sinvDoc.isSubmitted && !this.sinvDoc.stockNotTransferred) {
+        return;
+      }
+
+      await this.setItemQtyMap();
+      await this.setItems();
       await validateSinv(this.sinvDoc as SalesInvoice, this.itemQtyMap);
 
       if (!this.sinvDoc.isReturn) {

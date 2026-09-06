@@ -24,6 +24,9 @@ await build({
       export * from './src/utils/filterQuery';
       export * from './src/utils/filterFields';
       export { getJsonExportData } from './src/utils/export';
+      export { getItemQtyMap } from './models/helpers';
+      export { getPOSInventory, getPOSBatchQuantity, validatePOSStock } from './models/inventory/posStock';
+      export { validateSinv } from './src/utils/pos';
     `,
     resolveDir: frontend,
   },
@@ -62,6 +65,11 @@ export const {
   defaultCondition,
   isCompleteFilter,
   mergeQueryFilters,
+  getItemQtyMap,
+  getPOSInventory,
+  getPOSBatchQuantity,
+  validatePOSStock,
+  validateSinv,
 } = createRequire(import.meta.url)(output);
 
 export async function makeFyo() {

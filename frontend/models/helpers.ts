@@ -42,6 +42,7 @@ import { InvoiceItem } from './baseModels/InvoiceItem/InvoiceItem';
 import { SalesInvoiceItem } from './baseModels/SalesInvoiceItem/SalesInvoiceItem';
 import { ItemQtyMap, ItemVisibility, POSItem } from 'src/components/POS/types';
 import { ValuationMethod } from './inventory/types';
+import { getPOSInventory } from './inventory/posStock';
 import {
   getRawStockLedgerEntries,
   getStockBalanceEntries,
@@ -85,19 +86,7 @@ export async function getItemQtyMap(doc: SalesInvoice): Promise<ItemQtyMap> {
   const rawSLEs = await getRawStockLedgerEntries(doc.fyo);
   const rawData = getStockLedgerEntries(rawSLEs, valuationMethod);
 
-  const posProfileName = doc.fyo.singles.POSSettings?.posProfile;
-  let inventoryLocation: string | undefined;
-
-  if (posProfileName) {
-    const posProfile = await doc.fyo.doc.getDoc(
-      ModelNameEnum.POSProfile,
-      posProfileName as string
-    );
-
-    inventoryLocation = posProfile?.inventory as string | undefined;
-  } else {
-    inventoryLocation = doc.fyo.singles.POSSettings?.inventory;
-  }
+  const inventoryLocation = await getPOSInventory(doc.fyo);
 
   const stockBalance = getStockBalanceEntries(rawData, {
     location: inventoryLocation,

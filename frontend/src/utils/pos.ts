@@ -11,6 +11,7 @@ import { fyo } from 'src/initFyo';
 import { safeParseFloat } from 'utils/index';
 import { showToast } from './interactive';
 import { POSClosingShift } from 'models/inventory/Point of Sale/POSClosingShift';
+import { getPOSInventory, validatePOSStock } from 'models/inventory/posStock';
 
 export type POSPermissionSetting = 'canChangeRate' | 'canEditDiscount';
 
@@ -108,6 +109,7 @@ export async function validateSinv(
   }
 
   await validateSinvItems(
+    sinvDoc.fyo,
     sinvDoc.items as SalesInvoiceItem[],
     itemQtyMap,
     sinvDoc.returnAgainst as string
@@ -115,10 +117,13 @@ export async function validateSinv(
 }
 
 async function validateSinvItems(
+  fyo: Fyo,
   sinvItems: SalesInvoiceItem[],
   itemQtyMap: ItemQtyMap,
   isReturn?: string
 ) {
+  const inventory = await getPOSInventory(fyo);
+  const requested: ItemQtyMap = {};
   for (const item of sinvItems) {
     const trackItem = await fyo.getValue(
       ModelNameEnum.Item,
@@ -130,21 +135,31 @@ async function validateSinvItems(
       continue;
     }
 
-    if (!item.quantity || (item.quantity < 1 && !isReturn)) {
+    if (!item.quantity || (item.quantity < 0 && !isReturn)) {
       throw new ValidationError(
         t`Invalid Quantity for Item ${item.item as string}`
       );
     }
 
-    if (!itemQtyMap[item.item as string]) {
-      throw new ValidationError(t`Item ${item.item as string} not in Stock`);
+    if (isReturn) {
+      continue;
     }
 
-    if (item.quantity > itemQtyMap[item.item as string].availableQty) {
-      throw new ValidationError(
-        t`Insufficient Quantity. Item ${item.item as string} has only ${
-          itemQtyMap[item.item as string].availableQty
-        } quantities available. you selected ${item.quantity}`
+    const itemName = item.item as string;
+    const total = (requested[itemName] ??= { availableQty: 0 });
+    total.availableQty = safeParseFloat(total.availableQty + item.quantity);
+    validatePOSStock(itemName, total.availableQty, itemQtyMap, inventory);
+
+    if (item.batch) {
+      total[item.batch] = safeParseFloat(
+        (total[item.batch] ?? 0) + item.quantity
+      );
+      validatePOSStock(
+        itemName,
+        total[item.batch],
+        itemQtyMap,
+        inventory,
+        item.batch
       );
     }
   }

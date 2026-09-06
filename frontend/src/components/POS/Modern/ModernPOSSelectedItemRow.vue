@@ -247,6 +247,7 @@ import { Money } from 'pesa';
 import { validateSerialNumberCount } from 'src/utils/pos';
 import { getExistingActiveSerialNumbersForItem } from 'models/inventory/helpers';
 import { getPOSPermissionSetting } from 'src/utils/pos';
+import { getPOSBatchQuantity } from 'models/inventory/posStock';
 
 export default defineComponent({
   name: 'ModernPOSSelectedItemRow',
@@ -421,14 +422,10 @@ export default defineComponent({
         return 0;
       }
 
-      return (
-        (await fyo.db.getStockQuantity(
-          this.row.item as string,
-          undefined,
-          undefined,
-          undefined,
-          this.row.batch,
-        )) ?? 0
+      return getPOSBatchQuantity(
+        fyo,
+        this.row.item as string,
+        this.row.batch
       );
     },
     async setBatch(batch: string) {
