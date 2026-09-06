@@ -58,6 +58,7 @@ export abstract class InvoiceItem extends Doc {
 
   setItemDiscountAmount?: boolean;
   itemDiscountAmount?: Money;
+  isManualRate?: boolean;
   itemDiscountPercent?: number;
   itemDiscountedTotal?: Money;
   itemTaxedTotal?: Money;
@@ -141,6 +142,20 @@ export abstract class InvoiceItem extends Doc {
     }
   }
 
+  override async _applyChange(
+    fieldname: string,
+    retriggerChildDocApplyChange?: boolean
+  ) {
+    if (
+      ['rate', 'itemTaxedTotal', 'itemDiscountedTotal'].includes(fieldname)
+    ) {
+      this.isManualRate = true;
+    } else if (['item', 'priceList', 'batch'].includes(fieldname)) {
+      this.isManualRate = false;
+    }
+    return super._applyChange(fieldname, retriggerChildDocApplyChange);
+  }
+
   async getTotalTaxRate(): Promise<number> {
     if (!this.tax) {
       return 0;
@@ -174,8 +189,17 @@ export abstract class InvoiceItem extends Doc {
     },
     rate: {
       formula: async (fieldname) => {
+        if (['item', 'priceList', 'batch'].includes(fieldname ?? '')) {
+          this.isManualRate = false;
+        }
+        const isTotalEdit =
+          fieldname === 'itemTaxedTotal' ||
+          fieldname === 'itemDiscountedTotal';
+        if (this.isManualRate && !isTotalEdit) {
+          return this.rate;
+        }
         const rate = await getItemRate(this);
-        if (!rate?.float && this.rate?.float) {
+        if (!isTotalEdit && !rate?.float && this.rate?.float) {
           return this.rate;
         }
 
@@ -188,7 +212,8 @@ export abstract class InvoiceItem extends Doc {
 
         const quantity = this.quantity ?? 0;
         const itemDiscountPercent = this.itemDiscountPercent ?? 0;
-        const itemDiscountAmount = this.itemDiscountAmount ?? this.fyo.pesa(0);
+        const itemDiscountAmount =
+          this.itemDiscountAmount ?? this.fyo.pesa(0);
         const totalTaxRate = await this.getTotalTaxRate();
         const itemTaxedTotal = this.itemTaxedTotal ?? this.fyo.pesa(0);
         const itemDiscountedTotal =
@@ -601,7 +626,7 @@ export abstract class InvoiceItem extends Doc {
       );
     },
     itemDiscountAmount: (value: DocValue) => {
-      if ((value as Money).lte(this.amount!)) {
+      if ((value as Money).gte(0) && (value as Money).lte(this.amount!.abs())) {
         return;
       }
 
@@ -1011,9 +1036,9 @@ function getDiscountedTotalBeforeTaxation(
    */
 
   if (setDiscountAmount) {
-    return rate.sub(itemDiscountAmount).mul(quantity);
+    return rate.mul(quantity).sub(itemDiscountAmount.mul(Math.sign(quantity)));
   } else if (itemDiscountPercent > 0) {
-    return rate.mul(quantity).percent(itemDiscountPercent);
+    return rate.mul(quantity).percent(100 - itemDiscountPercent);
   }
   return rate.mul(quantity);
 }
@@ -1063,7 +1088,7 @@ function getDiscountedTotalAfterTaxation(
   );
 
   if (setItemDiscountAmount) {
-    return taxedTotal.sub(itemDiscountAmount);
+    return taxedTotal.sub(itemDiscountAmount.mul(Math.sign(quantity)));
   }
 
   return taxedTotal.mul(1 - itemDiscountPercent / 100);
@@ -1095,6 +1120,7 @@ function getRate(
 ) {
   const isItemDiscountedTotal = !isItemTaxedTotal;
   const discountBeforeTax = !discountAfterTax;
+  itemDiscountAmount = itemDiscountAmount.mul(Math.sign(quantity));
 
   if (isItemDiscountedTotal && discountBeforeTax && setItemDiscountAmount) {
     return itemDiscountedTotal.add(itemDiscountAmount).div(quantity);
@@ -1112,7 +1138,7 @@ function getRate(
 
   if (isItemDiscountedTotal && discountAfterTax && !setItemDiscountAmount) {
     return itemDiscountedTotal.div(
-      (quantity * (100 - itemDiscountPercent) * (100 + totalTaxRate)) / 100
+      (quantity * (100 - itemDiscountPercent) * (100 + totalTaxRate)) / 10000
     );
   }
 

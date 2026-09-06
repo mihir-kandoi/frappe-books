@@ -593,9 +593,7 @@ export abstract class Invoice extends Transactional {
     let discountAmount = this.fyo.pesa(0);
     if (item.setItemDiscountAmount) {
       discountAmount = discountAmount.add(
-        (item.itemDiscountAmount ?? this.fyo.pesa(0)).mul(
-          item.quantity as number
-        )
+        item.itemDiscountAmount ?? this.fyo.pesa(0)
       );
     } else if (!this.discountAfterTax) {
       if (this.isReturn) {
@@ -646,9 +644,7 @@ export abstract class Invoice extends Transactional {
     for (const item of this.items) {
       if (item.setItemDiscountAmount) {
         discountAmount = discountAmount.add(
-          (item.itemDiscountAmount ?? this.fyo.pesa(0)).mul(
-            item.quantity as number
-          )
+          item.itemDiscountAmount ?? this.fyo.pesa(0)
         );
       } else if (!this.discountAfterTax) {
         if (this.isReturn) {

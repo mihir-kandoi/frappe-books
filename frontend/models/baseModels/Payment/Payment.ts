@@ -174,25 +174,12 @@ export class Payment extends Transactional {
       .map(({ amount }) => amount as Money)
       .reduce((a, b) => a.add(b), this.fyo.pesa(0));
 
-    if (
-      (this.amount as Money)
-        .add((this.writeoff as Money) ?? 0)
-        .gte(referenceAmountTotal)
-    ) {
+    if ((this.amount as Money).gte(referenceAmountTotal)) {
       return;
     }
 
-    const writeoff = this.fyo.format(this.writeoff!, 'Currency');
     const payment = this.fyo.format(this.amount!, 'Currency');
     const refAmount = this.fyo.format(referenceAmountTotal, 'Currency');
-
-    if ((this.writeoff as Money).gt(0)) {
-      throw new ValidationError(
-        this.fyo.t`Amount: ${payment} and writeoff: ${writeoff}
-          is less than the total amount allocated to
-          references: ${refAmount}.`
-      );
-    }
 
     throw new ValidationError(
       this.fyo.t`Amount: ${payment} is less than the total
@@ -348,8 +335,15 @@ export class Payment extends Transactional {
     const account = this.account as string;
     const amount = this.amount as Money;
 
-    await posting.debit(paymentAccount, amount);
-    await posting.credit(account, amount);
+    const paidAmount = amount.sub(this.writeoff ?? this.fyo.pesa(0));
+    await posting.debit(
+      paymentAccount,
+      this.paymentType === 'Pay' ? amount : paidAmount
+    );
+    await posting.credit(
+      account,
+      this.paymentType === 'Pay' ? paidAmount : amount
+    );
 
     if (this.taxes) {
       if (this.paymentType === 'Receive') {
@@ -375,17 +369,13 @@ export class Payment extends Transactional {
       return posting;
     }
 
-    const account = this.account as string;
-    const paymentAccount = this.paymentAccount as string;
     const writeOffAccount = this.fyo.singles.AccountingSettings!
       .writeOffAccount as string;
 
     if (this.paymentType === 'Pay') {
-      await posting.credit(paymentAccount, writeoff);
-      await posting.debit(writeOffAccount, writeoff);
-    } else {
-      await posting.debit(account, writeoff);
       await posting.credit(writeOffAccount, writeoff);
+    } else {
+      await posting.debit(writeOffAccount, writeoff);
     }
   }
 

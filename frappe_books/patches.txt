@@ -4,6 +4,8 @@
 frappe_books.patches.rename_books_module
 
 [post_model_sync]
+frappe_books.patches.line_discounts
+frappe_books.patches.currency_display
 # Patches added in this section will be executed after doctypes are migrated
 
 [post_fixture_sync]

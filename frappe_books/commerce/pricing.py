@@ -140,7 +140,8 @@ def _applicable_rule(invoice, row, quantity, coupons):
 
 def _apply_price_discount(row, rule):
 	if rule.price_discount_type == "rate":
-		row.rate = rounded(rule.discount_rate)
+		if not row.is_manual_rate:
+			row.rate = rounded(rule.discount_rate)
 	elif rule.price_discount_type == "percentage":
 		row.set_item_discount_amount = 0
 		row.item_discount_percent = rule.discount_percentage

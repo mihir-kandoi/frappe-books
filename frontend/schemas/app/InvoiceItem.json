@@ -149,6 +149,13 @@
       "label": "Stock Not Transferred",
       "fieldtype": "Float",
       "readOnly": true
+    },
+    {
+      "fieldname": "isManualRate",
+      "fieldtype": "Check",
+      "label": "Manual Rate",
+      "default": false,
+      "hidden": true
     }
   ],
   "tableFields": ["item", "tax", "qty", "rate", "amount"],
@@ -160,7 +167,6 @@
     "hsnCode",
     "tax",
     "rate",
-
     "transferQuantity",
     "transferUnit",
     "batch",
@@ -168,7 +174,6 @@
     "quantity",
     "unit",
     "unitConversionFactor",
-
     "amount",
     "setItemDiscountAmount",
     "itemDiscountAmount",

@@ -19,6 +19,7 @@ class BooksPurchaseInvoiceItem(Document):
 		batch: DF.Link | None
 		description: DF.Text | None
 		hsn_code: DF.Int
+		is_manual_rate: DF.Check
 		item: DF.Link
 		item_code: DF.Data | None
 		item_discount_amount: DF.Currency

@@ -14,6 +14,7 @@ ITEM_FIELDS = (
 	"item_code",
 	"description",
 	"rate",
+	"is_manual_rate",
 	"transfer_unit",
 	"transfer_quantity",
 	"unit",

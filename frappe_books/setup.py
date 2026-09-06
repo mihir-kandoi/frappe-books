@@ -115,14 +115,9 @@ def _max_numeric_name(doctype):
 
 
 def normalize_ledger_dates():
-	"""Repair early SQLite-port rows that stored a timestamp in a Date column."""
-	if not frappe.db.table_exists("Books Ledger Entry"):
-		return
-	frappe.db.sql(
-		"""update "tabBooks Ledger Entry"
-		set posting_date = substr(posting_date, 1, 10)
-		where length(posting_date) > 10"""
-	)
+	from frappe_books.migrations import normalize_ledger_dates as repair_dates
+
+	repair_dates()
 
 
 def ensure_roles():

@@ -689,7 +689,8 @@
         "transferQuantity": "transfer_quantity",
         "transferUnit": "transfer_unit",
         "unit": "unit",
-        "unitConversionFactor": "unit_conversion_factor"
+        "unitConversionFactor": "unit_conversion_factor",
+        "isManualRate": "is_manual_rate"
       }
     },
     "PurchaseReceipt": {
@@ -798,7 +799,8 @@
         "transferQuantity": "transfer_quantity",
         "transferUnit": "transfer_unit",
         "unit": "unit",
-        "unitConversionFactor": "unit_conversion_factor"
+        "unitConversionFactor": "unit_conversion_factor",
+        "isManualRate": "is_manual_rate"
       }
     },
     "SalesQuote": {
@@ -853,7 +855,8 @@
         "transferQuantity": "transfer_quantity",
         "transferUnit": "transfer_unit",
         "unit": "unit",
-        "unitConversionFactor": "unit_conversion_factor"
+        "unitConversionFactor": "unit_conversion_factor",
+        "isManualRate": "is_manual_rate"
       }
     },
     "SerialNumber": {

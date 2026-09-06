@@ -33,11 +33,11 @@ class PaymentController(SeriesNamingMixin, Document):
 	def on_submit(self):
 		posting = LedgerPosting(self)
 		if self.payment_type == "Receive":
-			posting.debit(self.payment_account, self.amount, self.party)
+			posting.debit(self.payment_account, self.amount_paid, self.party)
 			posting.credit(self.account, self.amount, self.party)
 		else:
 			posting.debit(self.account, self.amount, self.party)
-			posting.credit(self.payment_account, self.amount, self.party)
+			posting.credit(self.payment_account, self.amount_paid, self.party)
 		_post_taxes(self, posting)
 		_post_writeoff(self, posting)
 		posting.post()
@@ -66,8 +66,8 @@ def _validate_allocations(payment):
 		if as_decimal(row.amount) <= 0 or as_decimal(row.amount) > abs(outstanding):
 			frappe.throw(_("Allocated amount exceeds the invoice outstanding amount."))
 		total += as_decimal(row.amount)
-	if total > as_decimal(payment.amount_paid):
-		frappe.throw(_("Payment allocations cannot exceed the amount paid."))
+	if total > as_decimal(payment.amount):
+		frappe.throw(_("Payment allocations cannot exceed the settled amount, including the write-off."))
 
 
 def _apply_allocations(payment, reverse):
@@ -107,8 +107,6 @@ def _post_writeoff(payment, posting):
 	if not writeoff_account:
 		frappe.throw(_("Set a write-off account in Books Accounting Settings."))
 	if payment.payment_type == "Pay":
-		posting.credit(payment.payment_account, writeoff)
-		posting.debit(writeoff_account, writeoff)
-	else:
-		posting.debit(payment.account, writeoff)
 		posting.credit(writeoff_account, writeoff)
+	else:
+		posting.debit(writeoff_account, writeoff)

@@ -90,9 +90,15 @@ def calculate_invoice(invoice):
 			tax_totals[detail.account] += tax_amount
 			tax_rates.setdefault(detail.account, detail.rate)
 			row_tax += tax_amount
+		if invoice.discount_after_tax:
+			discount = _item_discount(row, amount + row_tax)
 		row.amount = amount
-		row.item_discounted_total = discounted
-		row.item_taxed_total = rounded(amount + row_tax - discount)
+		row.item_discounted_total = (
+			rounded(amount + row_tax - discount) if invoice.discount_after_tax else discounted
+		)
+		row.item_taxed_total = (
+			rounded(amount + row_tax) if invoice.discount_after_tax else rounded(amount + row_tax - discount)
+		)
 		net_total += amount
 		item_discount_total += discount
 		item_taxed_total += as_decimal(row.item_taxed_total)
@@ -182,7 +188,11 @@ def _post_purchase(invoice, posting, total, exchange_rate, is_return):
 
 def _post_discount(invoice, posting, exchange_rate, credit, reverse):
 	item_discount = sum(
-		(abs(as_decimal(row.amount)) - abs(as_decimal(row.item_discounted_total)) for row in invoice.items),
+		(
+			abs(as_decimal(row.item_taxed_total if invoice.discount_after_tax else row.amount))
+			- abs(as_decimal(row.item_discounted_total))
+			for row in invoice.items
+		),
 		as_decimal(0),
 	)
 	discount = abs((item_discount + as_decimal(invoice.discount_amount)) * exchange_rate)
@@ -216,6 +226,8 @@ def _populate_invoice_defaults(invoice):
 		if not item:
 			continue
 		for fieldname in ("item_code", "description", "rate", "unit", "tax"):
+			if fieldname == "rate" and (row.is_manual_rate or row.get("is_free_item")):
+				continue
 			if not row.get(fieldname):
 				row.set(fieldname, item.get(fieldname))
 		if not row.transfer_unit:
@@ -240,7 +252,7 @@ def _tax_details(tax_name):
 
 def _item_discount(row, amount):
 	if row.set_item_discount_amount:
-		discount = as_decimal(row.item_discount_amount) * abs(as_decimal(row.quantity))
+		discount = as_decimal(row.item_discount_amount)
 	else:
 		discount = abs(amount) * as_decimal(row.item_discount_percent) / 100
 	return rounded(-discount if amount < 0 else discount)

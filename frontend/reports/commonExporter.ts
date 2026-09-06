@@ -46,7 +46,7 @@ async function exportReport(extention: ExportExtention, report: Report) {
   saveExportData(data, `${report.reportName}.${extention}`);
 }
 
-function getJsonData(report: Report): string {
+export function getJsonData(report: Report): string {
   const exportObject: JSONExport = {
     columns: [],
     rows: [],
@@ -80,8 +80,16 @@ function getJsonData(report: Report): string {
     const rowObj: Record<string, unknown> = {};
     for (let c = 0; c < row.cells.length; c++) {
       const { label } = columns[c];
-      const cell = getValueFromCell(row.cells[c], displayPrecision);
-      rowObj[label] = cell;
+      const cell = row.cells[c];
+      // If the cell's display value is empty (due to hideGroupAmounts or similar),
+      // export empty string instead of the rawValue
+      let cellValue: unknown;
+      if (cell.value === '' && row.isGroup) {
+        cellValue = '';
+      } else {
+        cellValue = getValueFromCell(cell, displayPrecision);
+      }
+      rowObj[label] = cellValue;
     }
 
     exportObject.rows.push(rowObj);
@@ -131,8 +139,14 @@ function convertReportToCSVMatrix(report: Report): unknown[][] {
 
     const csvrow: unknown[] = [];
     for (let c = 0; c < row.cells.length; c++) {
-      const cell = getValueFromCell(row.cells[c], displayPrecision);
-      csvrow.push(cell);
+      const cell = row.cells[c];
+      // If the cell's display value is empty (due to hideGroupAmounts or similar),
+      // export empty string instead of the rawValue
+      if (cell.value === '' && row.isGroup) {
+        csvrow.push('');
+      } else {
+        csvrow.push(getValueFromCell(cell, displayPrecision));
+      }
     }
 
     csvdata.push(csvrow);
@@ -154,7 +168,10 @@ function getValueFromCell(cell: ReportCell, displayPrecision: number) {
     /**
      * remove insignificant zeroes
      */
-    if (value.endsWith('0'.repeat(displayPrecision))) {
+    if (
+      displayPrecision > 0 &&
+      value.endsWith('0'.repeat(displayPrecision))
+    ) {
       return value.slice(0, -displayPrecision - 1);
     }
 
