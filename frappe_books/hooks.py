@@ -29,9 +29,6 @@ add_to_apps_screen = [
 	}
 ]
 
-# Keep the Framework tile first in the completed boot payload.
-boot_session = "frappe_books.boot.boot_session"
-
 # Companion apps that extend a host app (instead of taking their own apps-screen icon) can pin
 # their workspaces into the host app's workspace dock (rail) with this hook. Declaring it keeps
 # the app off the apps screen, so it takes precedence over any add_to_apps_screen above. Who can
@@ -116,7 +113,6 @@ jinja = {"methods": ["frappe_books.printing.get_print_settings"]}
 
 before_install = "frappe_books.setup.ensure_roles"
 after_install = "frappe_books.setup.after_install"
-after_app_install = "frappe_books.setup.after_app_install"
 
 # Keep required bootstrap data present after schema migrations.
 after_migrate = "frappe_books.setup.after_migrate"
