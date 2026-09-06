@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
+
 import frappe
 
 from frappe_books.ui_bridge.mapping import (
@@ -125,5 +127,18 @@ def _remove_stale_custom_fields(target: str, desired: set[str]):
 	if not stale:
 		return
 
-	frappe.db.delete("Custom Field", {"name": ["in", stale]})
+	with _as_administrator():
+		for name in stale:
+			frappe.delete_doc("Custom Field", name, ignore_permissions=True)
 	frappe.db.updatedb(target)
+
+
+@contextmanager
+def _as_administrator():
+	"""Books owns its generated fields, but Frappe only lets Administrator delete fields it created."""
+	user = frappe.session.user
+	frappe.set_user("Administrator")
+	try:
+		yield
+	finally:
+		frappe.set_user(user)
