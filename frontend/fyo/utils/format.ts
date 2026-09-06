@@ -148,7 +148,7 @@ function formatNumber(value: unknown, fyo: Fyo): string {
   }
 
   if (isPesa(value)) {
-    const floatValue = safeParseFloat(value.round());
+    const floatValue = safeParseFloat(value.toString());
     return numberFormatter.format(floatValue);
   }
 
@@ -184,6 +184,7 @@ function getNumberFormatter(fyo: Fyo) {
   return (fyo.currencyFormatter = Intl.NumberFormat(latnLocale, {
     style: 'decimal',
     minimumFractionDigits: display,
+    maximumFractionDigits: display,
   }));
 }
 

@@ -46,7 +46,7 @@ async function exportReport(extention: ExportExtention, report: Report) {
   saveExportData(data, `${report.reportName}.${extention}`);
 }
 
-function getJsonData(report: Report): string {
+export function getJsonData(report: Report): string {
   const exportObject: JSONExport = {
     columns: [],
     rows: [],
@@ -168,7 +168,10 @@ function getValueFromCell(cell: ReportCell, displayPrecision: number) {
     /**
      * remove insignificant zeroes
      */
-    if (value.endsWith('0'.repeat(displayPrecision))) {
+    if (
+      displayPrecision > 0 &&
+      value.endsWith('0'.repeat(displayPrecision))
+    ) {
       return value.slice(0, -displayPrecision - 1);
     }
 
