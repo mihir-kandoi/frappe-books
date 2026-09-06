@@ -6,7 +6,7 @@ import { DatabaseHandler } from './core/dbHandler';
 import { DocHandler } from './core/docHandler';
 import { DocValue, FyoConfig } from './core/types';
 import { Doc } from './model/doc';
-import { ModelMap } from './model/types';
+import { DocumentActionWarning, ModelMap } from './model/types';
 import {
   DEFAULT_CURRENCY,
   DEFAULT_DISPLAY_PRECISION,
@@ -34,6 +34,7 @@ export class Fyo {
   _initialized = false;
 
   errorLog: ErrorLog[] = [];
+  onDocumentActionWarning?: (warning: DocumentActionWarning) => void;
   temp?: Record<string, unknown>;
 
   currencyFormatter?: Intl.NumberFormat;
@@ -54,6 +55,32 @@ export class Fyo {
 
   get initialized() {
     return this._initialized;
+  }
+
+  reportDocumentActionWarning(
+    doc: Doc,
+    action: DocumentActionWarning['action'],
+    errors: unknown[]
+  ) {
+    const label = doc.name ?? doc.schema.label ?? doc.schemaName;
+    const messages = {
+      save: this.t`${label} was saved, but the view could not be fully updated. Reload the page before continuing.`,
+      submit: this.t`${label} was submitted, but the view could not be fully updated. Reload the page before continuing.`,
+    };
+    const message = messages[action];
+    for (const error of errors) {
+      this.errorLog.push({
+        name: 'Document follow-up failed',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        more: { schemaName: doc.schemaName, name: doc.name, action },
+      });
+    }
+    try {
+      this.onDocumentActionWarning?.({ doc, action, message, errors });
+    } catch (error) {
+      console.error(message, error);
+    }
   }
 
   get docs() {

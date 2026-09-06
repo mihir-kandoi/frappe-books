@@ -211,10 +211,11 @@ export default defineComponent({
         .filter((doc) => doc?.canSave) as Doc[];
 
       for (const doc of syncableDocs) {
-        await this.syncDoc(doc);
+        if (!(await this.syncDoc(doc))) {
+          return;
+        }
       }
 
-      this.update();
       await showDialog({
         title: this.t`Reload Frappe Books?`,
         detail: this.t`Changes made to settings will be visible on reload.`,
@@ -233,13 +234,20 @@ export default defineComponent({
         ],
       });
     },
-    async syncDoc(doc: Doc): Promise<void> {
+    async syncDoc(doc: Doc): Promise<boolean> {
       try {
         await doc.sync();
+      } catch (error) {
+        await handleErrorWithDialog(error, doc, false, true);
+        return false;
+      }
+
+      try {
         this.updateGroupedFields();
       } catch (error) {
-        await handleErrorWithDialog(error, doc);
+        this.fyo.reportDocumentActionWarning(doc, 'save', [error]);
       }
+      return true;
     },
     async onValueChange(field: Field, value: DocValue): Promise<void> {
       const { fieldname } = field;

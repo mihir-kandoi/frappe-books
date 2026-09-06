@@ -261,8 +261,15 @@ test('one notification renders once and dismisses on click', async ({ page }) =>
     const app = (document.querySelector('#app') as any).__vue_app__;
     const fyo = app._context.mixins.find((m: any) => m.computed?.fyo).computed.fyo();
     fyo.singles.POSSettings.isShiftOpen = true;
+    fyo.singles.POSSettings.inventory = 'Stores';
+    fyo.singles.POSSettings.cashAccount = 'Fixture Cash';
+    fyo.singles.POSSettings.writeOffAccount = 'Fixture Write Off';
+    fyo.singles.AccountingSettings.enableCouponCode = true;
     return app.config.globalProperties.$router.push('/pos');
   });
+  await expect(
+    page.getByRole('button', { name: 'Coupon Code', exact: true })
+  ).toHaveCount(1);
   await page.getByRole('button', { name: 'Coupon Code', exact: true }).click();
   const close = page.getByRole('button', { name: 'Close toast', exact: true });
   await expect(close).toHaveCount(1);

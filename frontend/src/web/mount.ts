@@ -5,6 +5,11 @@ import { outsideClickDirective } from 'src/utils/outsideClick';
 import { fyo } from 'src/initFyo';
 import router from 'src/router';
 import WebApp from './WebApp.vue';
+import { showToast } from 'src/utils/interactive';
+
+fyo.onDocumentActionWarning = ({ message }) => {
+  showToast({ type: 'warning', message });
+};
 
 const app = createApp(WebApp);
 app.use(FrappeUI);

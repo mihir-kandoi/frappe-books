@@ -150,10 +150,10 @@ export default {
       const fieldname = this.df.fieldname;
 
       doc.once('afterSync', async () => {
+        await setLinkOnParent(parentDoc, fieldname, doc.name);
         this.$router.back();
         this.results = [];
         this.triggerChange(doc.name);
-        await setLinkOnParent(parentDoc, fieldname, doc.name);
       });
     },
     async getCreateFilters() {

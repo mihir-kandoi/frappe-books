@@ -738,7 +738,12 @@ export default defineComponent({
         duration: 'short',
       });
 
-      await this.afterSync();
+      const savedDoc = this.sinvDoc as SalesInvoice;
+      try {
+        await this.afterSync();
+      } catch (error) {
+        this.fyo.reportDocumentActionWarning(savedDoc, 'save', [error]);
+      }
     },
     async setItemGroup(itemGroupName: string) {
       this.selectedItemGroup = itemGroupName;

@@ -129,6 +129,23 @@ export default class Observable<T> {
     await this._executeTriggers(event, params);
   }
 
+  async triggerSafely(event: string, params?: unknown): Promise<unknown[]> {
+    const listeners = [
+      ...(this._listeners.get(event) ?? []),
+      ...(this._onceListeners.get(event) ?? []),
+    ];
+    this._onceListeners.delete(event);
+    const errors: unknown[] = [];
+    for (const listener of listeners) {
+      try {
+        await listener(params);
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    return errors;
+  }
+
   _removeListener(type: EventType, event: string, listener: Listener) {
     const listeners = (this[type].get(event) ?? []).filter(
       (l) => l !== listener

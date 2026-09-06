@@ -1,7 +1,7 @@
 # Copyright (c) 2026, Frappe Technologies Pvt. Ltd. and contributors
 # For license information, please see license.txt
 
-# import frappe
+import frappe
 from frappe.model.document import Document
 
 from frappe_books.regional import validate_party
@@ -36,3 +36,11 @@ class BooksParty(Document):
 
 	def validate(self):
 		validate_party(self)
+
+	def on_update(self):
+		if not self.from_lead:
+			return
+		lead = frappe.get_doc("Books Lead", self.from_lead)
+		if lead.status != "Converted":
+			lead.status = "Converted"
+			lead.save()

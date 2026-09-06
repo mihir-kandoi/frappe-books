@@ -110,52 +110,6 @@ export class Item extends Doc {
     }
   }
 
-  async afterSync(): Promise<void> {
-    await super.afterSync();
-
-    if (this.hasSerialNumber && this.serialNumberSeries) {
-      const seriesName = this.serialNumberSeries?.trim();
-
-      if (!seriesName) {
-        return;
-      }
-
-      const exists = await this.fyo.db.exists('SerialNumberSeries', seriesName);
-
-      if (!exists) {
-        await this.fyo.doc
-          .getNewDoc('SerialNumberSeries', {
-            name: seriesName,
-            start: 1001,
-            padZeros: 4,
-            current: 1001,
-          })
-          .sync();
-      }
-    }
-
-    if (this.hasBatch && this.batchSeries) {
-      const seriesName = this.batchSeries?.trim();
-
-      if (!seriesName) {
-        return;
-      }
-
-      const exists = await this.fyo.db.exists('BatchSeries', seriesName);
-
-      if (!exists) {
-        await this.fyo.doc
-          .getNewDoc('BatchSeries', {
-            name: seriesName,
-            start: 1001,
-            padZeros: 4,
-            current: 1001,
-          })
-          .sync();
-      }
-    }
-  }
-
   static filters: FiltersMap = {
     incomeAccount: () => ({
       isGroup: false,

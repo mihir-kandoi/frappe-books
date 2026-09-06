@@ -185,13 +185,11 @@ export class Party extends Doc {
   }
 
   async afterSync() {
-    await super.afterSync();
     if (!this.fromLead) {
       return;
     }
-
-    const leadData = await this.fyo.doc.getDoc(ModelNameEnum.Lead, this.name);
-    await leadData.setAndSync('status', 'Converted');
+    const lead = await this.fyo.doc.getDoc(ModelNameEnum.Lead, this.fromLead);
+    await lead.load();
   }
 
   static getActions(fyo: Fyo): Action[] {

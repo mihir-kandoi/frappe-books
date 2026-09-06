@@ -194,7 +194,6 @@ export default defineComponent({
 
         // The server posts the opening cash journal when the shift is saved.
         await this.posShiftDoc?.sync();
-        await this.fyo.singles.POSSettings?.setAndSync('isShiftOpen', true);
 
         this.$emit('toggleModal', 'ShiftOpen');
       } catch (error) {

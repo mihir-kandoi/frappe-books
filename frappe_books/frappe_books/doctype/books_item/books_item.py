@@ -1,7 +1,7 @@
 # Copyright (c) 2026, Frappe Technologies Pvt. Ltd. and contributors
 # For license information, please see license.txt
 
-# import frappe
+import frappe
 from frappe.model.document import Document
 
 from frappe_books.regional import validate_item
@@ -45,3 +45,17 @@ class BooksItem(Document):
 
 	def validate(self):
 		validate_item(self)
+
+	def on_update(self):
+		if self.has_serial_number:
+			self._create_series("Books Serial Number Series", self.serial_number_series)
+		if self.has_batch:
+			self._create_series("Books Batch Series", self.batch_series)
+
+	def _create_series(self, doctype, name):
+		name = (name or "").strip()
+		if not name or frappe.db.exists(doctype, name):
+			return
+		frappe.get_doc(
+			{"doctype": doctype, "name": name, "start": 1001, "pad_zeros": 4, "current": 1001}
+		).insert(ignore_if_duplicate=True)

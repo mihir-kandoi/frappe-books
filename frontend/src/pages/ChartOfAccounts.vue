@@ -501,27 +501,20 @@ export default defineComponent({
           isGroup,
         });
         await doc.sync();
+      } catch (e) {
+        await handleErrorWithDialog(e, doc, false, true);
+        return;
+      } finally {
+        this.insertingAccount = false;
+      }
 
-        // turn off editing
-        parentAccount.addingAccount = false;
-        parentAccount.addingGroupAccount = false;
-
-        this.addingParent = null;
-
-        // update accounts
+      this.cancelAddingAccount(parentAccount);
+      try {
         await this.fetchChildren(parentAccount, true);
-
-        // open quick edit
         await openQuickEdit({ doc });
         this.setOpenAccountDocListener(doc, undefined, parentAccount);
-
-        // unfreeze input
-        this.insertingAccount = false;
-        this.newAccountName = '';
-      } catch (e) {
-        // unfreeze input
-        this.insertingAccount = false;
-        await handleErrorWithDialog(e, doc);
+      } catch (error) {
+        fyo.reportDocumentActionWarning(doc, 'save', [error]);
       }
     },
     getAccountIconName(isGroup: boolean, name?: string): string {

@@ -52,6 +52,27 @@ test('a rejected submission retains the draft and listeners for a successful ret
   assert.equal(notifications, 1);
 });
 
+test('submitted values survive a display formula failure without allowing resubmission', async () => {
+  const { fyo, payment } = await makePayment();
+  const warnings = [];
+  fyo.onDocumentActionWarning = (warning) => warnings.push(warning);
+  payment._setComputedValuesFromFormulas = async () => {
+    throw new Error('Display formula failed');
+  };
+  fyo.db.runLifecycleAction = async () => ({
+    ...payment.getValidDict(),
+    submitted: true,
+  });
+
+  await payment.submit();
+
+  assert.equal(payment.inserted, true);
+  assert.equal(payment.dirty, false);
+  assert.equal(payment.submitted, true);
+  assert.equal(payment.canSubmit, false);
+  assert.equal(warnings[0].action, 'submit');
+});
+
 async function makePayment() {
   const fyo = await makeFyo();
   const payment = fyo.doc.getNewDoc('Payment', {
@@ -64,3 +85,28 @@ async function makePayment() {
   payment._dirty = false;
   return { fyo, payment };
 }
+
+test('a failed submission callback cannot turn a posted document into a failed submission', async () => {
+  const { fyo, payment } = await makePayment();
+  const warnings = [];
+  let notified = false;
+  fyo.onDocumentActionWarning = (warning) => warnings.push(warning);
+  fyo.db.runLifecycleAction = async () => ({
+    ...payment.getValidDict(),
+    submitted: true,
+  });
+  payment.once('afterSubmit', () => {
+    throw new Error('Invoice refresh failed');
+  });
+  payment.once('afterSubmit', () => {
+    notified = true;
+  });
+
+  await payment.submit();
+
+  assert.equal(payment.submitted, true);
+  assert.equal(payment.canSubmit, false);
+  assert.equal(notified, true);
+  assert.equal(warnings.length, 1);
+  assert.equal(warnings[0].action, 'submit');
+});

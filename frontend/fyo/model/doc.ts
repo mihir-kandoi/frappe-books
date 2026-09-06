@@ -30,6 +30,7 @@ import {
   ChangeArg,
   CurrenciesMap,
   DefaultMap,
+  DocumentActionWarning,
   EmptyMessageMap,
   FiltersMap,
   FormulaMap,
@@ -706,14 +707,38 @@ export class Doc extends Observable<DocValue | Doc[]> {
     return this.links?.[fieldname] ?? null;
   }
 
-  async _syncValues(data: DocValueMap) {
+  async _syncValues(
+    data: DocValueMap,
+    savedAction?: DocumentActionWarning['action']
+  ) {
     this._clearValues();
     this._setValuesWithoutChecks(data, false);
-    await this._setComputedValuesFromFormulas();
+    const errors: unknown[] = [];
+    try {
+      await this._setComputedValuesFromFormulas();
+    } catch (error) {
+      if (!savedAction) {
+        throw error;
+      }
+      errors.push(error);
+    }
     this._dirty = false;
-    this.trigger('change', {
-      doc: this,
-    });
+    const change = { doc: this };
+    if (!savedAction) {
+      this.trigger('change', change);
+      return;
+    }
+
+    this._notInserted = false;
+    try {
+      await this.change(change);
+    } catch (error) {
+      errors.push(error);
+    }
+    errors.push(...(await super.triggerSafely('change', change)));
+    if (errors.length) {
+      this.fyo.reportDocumentActionWarning(this, savedAction, errors);
+    }
   }
 
   async _setComputedValuesFromFormulas() {
@@ -897,7 +922,7 @@ export class Doc extends Observable<DocValue | Doc[]> {
     } catch (err) {
       throw await getDbSyncError(err as Error, this, this.fyo);
     }
-    await this._syncValues(data);
+    await this._syncValues(data, 'save');
 
     return this;
   }
@@ -924,7 +949,7 @@ export class Doc extends Observable<DocValue | Doc[]> {
     } catch (err) {
       throw await getDbSyncError(err as Error, this, this.fyo);
     }
-    await this._syncValues(data);
+    await this._syncValues(data, 'save');
 
     return this;
   }
@@ -934,8 +959,7 @@ export class Doc extends Observable<DocValue | Doc[]> {
       await this.trigger('beforeSync');
       const doc = this.notInserted ? await this._insert() : await this._update();
       this._notInserted = false;
-      await this.trigger('afterSync');
-      this.fyo.doc.observer.trigger(`sync:${this.schemaName}`, this.name);
+      await this._notifyAfterAction('sync');
       return doc;
     } finally {
       this._syncing = false;
@@ -968,11 +992,36 @@ export class Doc extends Observable<DocValue | Doc[]> {
       this.schemaName,
       this.name!
     );
-    await this._syncValues(data);
+    await this._syncValues(data, 'submit');
     this._notInserted = false;
-    this.fyo.doc.observer.trigger(`submit:${this.schemaName}`, this.name);
-    // The server runs model hooks; notify only the UI listeners here.
-    await super.trigger('afterSubmit');
+    await this._notifyAfterAction('submit');
+  }
+
+  async _notifyAfterAction(action: 'sync' | 'submit') {
+    const errors: unknown[] = [];
+    if (action === 'sync') {
+      try {
+        await this.afterSync();
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    // Accounting hooks run on the server. These listeners update the interface.
+    const event = action === 'sync' ? 'afterSync' : 'afterSubmit';
+    errors.push(...(await super.triggerSafely(event)));
+    errors.push(
+      ...(await this.fyo.doc.observer.triggerSafely(
+        `${action}:${this.schemaName}`,
+        this.name
+      ))
+    );
+    if (errors.length) {
+      this.fyo.reportDocumentActionWarning(
+        this,
+        action === 'sync' ? 'save' : 'submit',
+        errors
+      );
+    }
   }
 
   async cancel() {

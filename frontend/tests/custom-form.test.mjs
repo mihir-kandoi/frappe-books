@@ -233,3 +233,29 @@ function savedForm() {
     ],
   };
 }
+
+test('a schema refresh failure preserves the saved customization and notifies other views', async () => {
+  const { fyo, form, row, getUpdateCount } = await makeFixture(savedForm());
+  const warnings = [];
+  let notified = false;
+  fyo.onDocumentActionWarning = (warning) => warnings.push(warning);
+  fyo.db.refreshSchemaMap = async () => {
+    throw new Error('Schema refresh failed');
+  };
+  form.once('afterSync', () => {
+    notified = true;
+  });
+  await row.set('label', 'Saved label');
+
+  await form.sync();
+
+  assert.equal(getUpdateCount(), 1);
+  assert.equal(form.dirty, false);
+  assert.equal(notified, true);
+  assert.equal(warnings.length, 1);
+  assert.equal(warnings[0].action, 'save');
+  assert.equal(
+    (await fyo.db.get('CustomForm', form.name)).customFields[0].label,
+    'Saved label'
+  );
+});

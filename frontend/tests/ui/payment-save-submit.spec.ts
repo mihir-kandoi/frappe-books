@@ -127,7 +127,7 @@ test('an invoice refresh failure reports that the payment was submitted', async 
   await submitPayment(page);
 
   await expect(
-    page.getByText(/was submitted, but the invoice view could not be refreshed/)
+    page.getByText(/was submitted, but the view could not be fully updated/)
   ).toBeVisible();
   await expect(
     page.getByRole('button', { name: 'Submit', exact: true })
@@ -139,6 +139,33 @@ async function submitPayment(page: Page) {
   await page.getByRole('button', { name: 'Submit', exact: true }).click();
   await page.getByRole('button', { name: 'Yes', exact: true }).click();
 }
+
+test('a post-save refresh failure leaves a saved draft with Submit available', async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    (window as any).paymentFlow.payment.once('afterSync', () => {
+      throw new Error('Draft view refresh failed');
+    });
+  });
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(
+    page.getByText(/was saved, but the view could not be fully updated/)
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Submit', exact: true })
+  ).toBeVisible();
+  expect(await state(page)).toMatchObject({
+    inserts: 1,
+    inserted: true,
+    dirty: false,
+    submissions: 0,
+  });
+  await submitPayment(page);
+  await expect(
+    page.getByRole('button', { name: 'Close quick edit' })
+  ).toHaveCount(0);
+});
 
 async function state(page: Page) {
   return page.evaluate(() => {

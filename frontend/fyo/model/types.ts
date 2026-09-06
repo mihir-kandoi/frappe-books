@@ -47,7 +47,14 @@ export type CurrenciesMap = Record<string, GetCurrency | undefined>;
 export type HiddenMap = Record<string, Hidden | undefined>;
 export type ReadOnlyMap = Record<string, ReadOnly | undefined>;
 
-export type ChangeArg = { doc: Doc; changed: string };
+export type ChangeArg = { doc: Doc; changed?: string };
+
+export interface DocumentActionWarning {
+  doc: Doc;
+  action: 'save' | 'submit';
+  message: string;
+  errors: unknown[];
+}
 
 /**
  * Should add this for hidden too

@@ -219,7 +219,6 @@ export default defineComponent({
         // The server posts the closing cash journal when the shift is saved.
         await this.posClosingShiftDoc?.sync();
 
-        await this.fyo.singles.POSSettings?.setAndSync('isShiftOpen', false);
         this.$emit('toggleModal', 'ShiftClose');
       } catch (error) {
         return showToast({
