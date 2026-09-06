@@ -49,18 +49,26 @@ export async function openQuickEdit({
     throw new ValueError(t`Quick edit error: ${schemaName} entry has no name.`);
   }
 
-  if (router.currentRoute.value.query.name === name) {
+  const currentQuery = router.currentRoute.value.query;
+  if (
+    currentQuery.edit &&
+    currentQuery.schemaName === schemaName &&
+    currentQuery.name === name
+  ) {
     return;
   }
 
   const query = {
+    ...currentQuery,
     edit: 1,
     name,
     schemaName,
     showFields,
     hideFields,
   };
-  await router.push({ query });
+  // New linked records need a history entry to return to their parent form.
+  const replace = !!currentQuery.edit && !doc.notInserted;
+  await router.push({ query, replace });
 }
 
 export async function openSettings(tab: SettingsTab) {

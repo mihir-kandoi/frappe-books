@@ -169,6 +169,39 @@ test('creating a linked entry uses the search text without changing the saved li
   });
 });
 
+test('cancelling a new linked record returns to its parent quick edit', async ({
+  page,
+}) => {
+  await page.evaluate(() => {
+    const app = (document.querySelector('#app') as any).__vue_app__;
+    return app.config.globalProperties.$router.push({
+      path: '/chart-of-accounts',
+      query: { edit: '1', schemaName: 'Party', name: 'Audit Saved Party' },
+    });
+  });
+  const title = page.getByRole('heading', {
+    name: partyName,
+    exact: true,
+    level: 2,
+  });
+  await expect(title).toBeVisible();
+  const parentUrl = page.url();
+  const address = page.getByRole('combobox', { name: 'Address', exact: true });
+  await address.fill(partyName);
+  await page.getByText('Create', { exact: true }).last().click();
+  await expect(
+    page.getByRole('textbox', { name: 'Address Name', exact: true })
+  ).toHaveValue(partyName);
+  await page.getByRole('button', { name: 'Close quick edit', exact: true }).click();
+  await expect(title).toBeVisible();
+  await expect(page).toHaveURL(parentUrl);
+  await expect(address).toHaveValue(addressLabel);
+  expect(await getPartyState(page)).toEqual({
+    dirty: false,
+    address: addressName,
+  });
+});
+
 test('Escape dismisses account menus and dialogs without closing quick edit', async ({
   page,
 }) => {
