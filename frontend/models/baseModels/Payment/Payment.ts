@@ -348,8 +348,15 @@ export class Payment extends Transactional {
     const account = this.account as string;
     const amount = this.amount as Money;
 
-    await posting.debit(paymentAccount, amount);
-    await posting.credit(account, amount);
+    const paidAmount = amount.sub(this.writeoff ?? this.fyo.pesa(0));
+    await posting.debit(
+      paymentAccount,
+      this.paymentType === 'Pay' ? amount : paidAmount
+    );
+    await posting.credit(
+      account,
+      this.paymentType === 'Pay' ? paidAmount : amount
+    );
 
     if (this.taxes) {
       if (this.paymentType === 'Receive') {
@@ -375,17 +382,13 @@ export class Payment extends Transactional {
       return posting;
     }
 
-    const account = this.account as string;
-    const paymentAccount = this.paymentAccount as string;
     const writeOffAccount = this.fyo.singles.AccountingSettings!
       .writeOffAccount as string;
 
     if (this.paymentType === 'Pay') {
-      await posting.credit(paymentAccount, writeoff);
-      await posting.debit(writeOffAccount, writeoff);
-    } else {
-      await posting.debit(account, writeoff);
       await posting.credit(writeOffAccount, writeoff);
+    } else {
+      await posting.debit(writeOffAccount, writeoff);
     }
   }
 
