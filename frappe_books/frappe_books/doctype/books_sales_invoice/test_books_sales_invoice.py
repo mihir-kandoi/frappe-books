@@ -50,6 +50,29 @@ class IntegrationTestBooksSalesInvoice(IntegrationTestCase):
 		self.assertEqual(sum(bool(row.reverts) for row in entries), 4)
 		self.assertEqual(invoice.db_get("outstanding_amount"), 0)
 
+	def test_multi_currency_posting_balances_with_round_off(self):
+		round_off = make_account("Round Off", root_type="Expense", account_type="Round Off")
+		frappe.db.set_single_value("Books Accounting Settings", "round_off_account", round_off.name)
+		item = make_item(self.income.name, self.expense.name)
+		invoice = make_invoice(
+			"Books Sales Invoice",
+			self.party.name,
+			self.receivable.name,
+			item.name,
+			self.income.name,
+			exchange_rate=1.2345,
+		)
+		invoice.items[0].update({"rate": 10, "quantity": 3, "item_discount_percent": 5})
+		invoice.save().submit()
+
+		entries = ledger_entries(invoice.doctype, invoice.name)
+		debit = sum(Decimal(str(row.debit or 0)) for row in entries)
+		credit = sum(Decimal(str(row.credit or 0)) for row in entries)
+		self.assertEqual(debit, credit)
+		self.assertEqual(debit, Decimal("37.04"))
+		round_off_entry = next(row for row in entries if row.account == round_off.name)
+		self.assertEqual(Decimal(str(round_off_entry.debit)), Decimal("0.01"))
+
 	def _make_invoice(self):
 		return make_invoice(
 			"Books Sales Invoice",
