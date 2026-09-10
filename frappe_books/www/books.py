@@ -2,9 +2,11 @@
 
 import json
 import re
+from urllib.parse import urlencode
 
 import frappe
 import frappe.sessions
+from frappe import _
 from frappe.utils.jinja_globals import is_rtl
 
 no_cache = 1
@@ -13,6 +15,7 @@ CLOSING_SCRIPT_TAG_PATTERN = re.compile(r"</script\>", re.IGNORECASE)
 
 
 def get_context(context):
+	_require_login()
 	context.no_cache = 1
 	context.boot = _get_boot()
 	context.app_name = (
@@ -22,6 +25,18 @@ def get_context(context):
 	context.lang = frappe.local.lang
 	context.books_boot = json.dumps(_books_boot())
 	return context
+
+
+def _require_login():
+	"""Send a logged out visitor to the login page.
+
+	The boot needs a desk session. Without this the page ends as a server error.
+	"""
+	if frappe.session.user != "Guest":
+		return
+	frappe.response["status_code"] = 403
+	frappe.msgprint(_("Log in to access this page."))
+	frappe.redirect(f"/login?{urlencode({'redirect-to': frappe.request.path})}")
 
 
 def _get_boot():
